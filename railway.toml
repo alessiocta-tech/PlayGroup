@@ -1,0 +1,14 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Service "web" — Next.js app
+# startCommand = "npx prisma migrate deploy && next start"
+
+# Service "worker" — BullMQ worker (configurare come servizio separato su Railway)
+# startCommand = "npx tsx workers/index.ts"
