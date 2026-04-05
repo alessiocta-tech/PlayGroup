@@ -1,14 +1,18 @@
 import 'dotenv/config'
 import {
   briefingQueue,
+  syncKpiQueue,
   syncCalendarQueue,
   syncEmailQueue,
+  syncFattureQueue,
   alertsQueue,
 } from './queues'
 import { startBriefingWorker } from './briefing'
 import { startCalendarWorker } from './sync-calendar'
 import { startEmailWorker } from './sync-email'
 import { startAlertsWorker } from './alerts'
+import { startSyncKpiWorker } from './sync-kpi'
+import { startSyncFattureWorker } from './sync-fatture'
 
 console.log('[Worker] Starting Play Group background workers...')
 
@@ -17,6 +21,8 @@ startBriefingWorker()
 startCalendarWorker()
 startEmailWorker()
 startAlertsWorker()
+startSyncKpiWorker()
+startSyncFattureWorker()
 
 // Schedule recurring jobs
 async function scheduleJobs(): Promise<void> {
@@ -27,6 +33,17 @@ async function scheduleJobs(): Promise<void> {
     {
       repeat: { pattern: '0 8 * * *', tz: 'Europe/Rome' },
       removeOnComplete: 10,
+      removeOnFail: 5,
+    }
+  )
+
+  // Sync KPI (deRione + others) every hour
+  await syncKpiQueue.add(
+    'kpi-sync',
+    {},
+    {
+      repeat: { pattern: '0 * * * *' },
+      removeOnComplete: 5,
       removeOnFail: 5,
     }
   )
@@ -48,6 +65,17 @@ async function scheduleJobs(): Promise<void> {
     {},
     {
       repeat: { pattern: '*/15 * * * *' },
+      removeOnComplete: 5,
+      removeOnFail: 5,
+    }
+  )
+
+  // Sync Fattura24 every 6 hours
+  await syncFattureQueue.add(
+    'fatture-sync',
+    {},
+    {
+      repeat: { pattern: '0 */6 * * *' },
       removeOnComplete: 5,
       removeOnFail: 5,
     }

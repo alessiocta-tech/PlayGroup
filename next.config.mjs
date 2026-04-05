@@ -19,6 +19,17 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      // Redirect apex domain to www (catches Railway's routing of playgroupsrl.it)
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'playgroupsrl.it' }],
+        destination: 'https://www.playgroupsrl.it/:path*',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {

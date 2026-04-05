@@ -1,5 +1,6 @@
 import Sidebar from '@/components/layout/Sidebar'
 import TopBar from '@/components/layout/TopBar'
+import AgentChat from '@/components/chat/AgentChat'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {children}
         </main>
       </div>
+      <AgentChat />
     </div>
   )
 }
