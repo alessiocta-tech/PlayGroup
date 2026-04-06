@@ -1,11 +1,5 @@
-import withPWAInit from '@ducanh2912/next-pwa'
-
-const withPWA = withPWAInit({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-})
+// PWA disabled until CSS build issue resolved
+// import withPWAInit from '@ducanh2912/next-pwa'
 
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
@@ -19,6 +13,7 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   async redirects() {
     return [
       // Redirect apex domain to www (catches Railway's routing of playgroupsrl.it)
@@ -40,4 +35,4 @@ const nextConfig = {
   },
 }
 
-export default withPWA(nextConfig)
+export default nextConfig
