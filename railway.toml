@@ -3,8 +3,8 @@ builder = "nixpacks"
 buildCommand = "npx prisma generate && npm run build"
 
 [deploy]
-startCommand = "npx prisma migrate deploy && node .next/standalone/server.js"
-# healthcheckPath = "/"   # temporaneamente disabilitato durante incident Railway
+startCommand = "npx prisma migrate deploy && HOSTNAME=0.0.0.0 node .next/standalone/server.js"
+healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
