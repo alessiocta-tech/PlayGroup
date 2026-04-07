@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
+import { useState } from 'react'
 
 const navItems = [
   {
@@ -115,13 +116,13 @@ const navItems = [
   },
 ]
 
-export default function Sidebar() {
+function SidebarContent({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
 
   return (
-    <aside className="w-56 min-h-screen bg-[#111111] flex flex-col fixed left-0 top-0 z-40">
+    <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="p-4 border-b border-white/[0.06]">
+      <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 bg-[#F0C040] rounded-lg flex items-center justify-center flex-shrink-0">
             <span className="text-[10px] font-extrabold text-[#111111]">PG</span>
@@ -131,6 +132,13 @@ export default function Sidebar() {
             <div className="text-[#444] text-[10px]">Sistema operativo</div>
           </div>
         </div>
+        {onClose && (
+          <button onClick={onClose} className="text-[#888] hover:text-white p-1">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -141,6 +149,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-colors ${
                 isActive
                   ? 'bg-[#F0C040] text-[#111111]'
@@ -158,6 +167,7 @@ export default function Sidebar() {
       <div className="p-2 border-t border-white/[0.06] space-y-px">
         <Link
           href="/"
+          onClick={onClose}
           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-[#888] hover:text-white hover:bg-white/[0.06] transition-colors"
         >
           <svg className="w-4 h-4 text-[#555]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,6 +185,42 @@ export default function Sidebar() {
           <span>Esci</span>
         </button>
       </div>
-    </aside>
+    </div>
+  )
+}
+
+export default function Sidebar() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-56 min-h-screen bg-[#111111] flex-col fixed left-0 top-0 z-40">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile hamburger button — shown in TopBar area */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-3 left-4 z-50 w-8 h-8 bg-[#111111] rounded-lg flex items-center justify-center"
+      >
+        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <>
+          <div
+            className="md:hidden fixed inset-0 bg-black/60 z-40"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-64 bg-[#111111] z-50 flex flex-col">
+            <SidebarContent onClose={() => setMobileOpen(false)} />
+          </aside>
+        </>
+      )}
+    </>
   )
 }

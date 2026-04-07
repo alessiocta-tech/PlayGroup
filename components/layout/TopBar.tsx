@@ -15,7 +15,7 @@ export default async function TopBar() {
   const name = session?.user?.name?.split(' ')[0] ?? 'Alessio'
 
   return (
-    <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-6 sticky top-0 z-30">
+    <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between pl-14 pr-6 md:px-6 sticky top-0 z-30">
       <span className="text-sm text-gray-400">
         {greeting},{' '}
         <span className="font-semibold text-[#111111]">{name}</span>
