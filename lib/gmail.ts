@@ -134,7 +134,10 @@ export async function syncGmailWithResult(): Promise<SyncResult> {
     const priority = classifyPriority(subject, fromEmail, msg.snippet)
 
     const existing = await prisma.email.findFirst({
-      where: { meta: { path: ['gmailId'], equals: id } },
+      where: {
+        fromEmail,
+        timestamp: { gte: new Date(date.getTime() - 30000) },
+      },
     })
     if (existing) { skipped++; continue }
 
@@ -149,7 +152,6 @@ export async function syncGmailWithResult(): Promise<SyncResult> {
         priority,
         read: isRead,
         timestamp: date,
-        meta: { gmailId: id },
       },
     })
     synced++
