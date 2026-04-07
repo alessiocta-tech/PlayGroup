@@ -17,14 +17,13 @@ interface GmailListResponse {
   nextPageToken?: string
 }
 
-async function getAccessToken(): Promise<string | null> {
+async function getAccessToken(): Promise<{ token: string } | { error: string }> {
   const clientId = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN
 
   if (!clientId || !clientSecret || !refreshToken) {
-    console.warn('[Gmail] Missing OAuth credentials')
-    return null
+    return { error: 'Missing OAuth credentials (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_REFRESH_TOKEN)' }
   }
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
@@ -38,9 +37,13 @@ async function getAccessToken(): Promise<string | null> {
     }),
   })
 
-  if (!res.ok) return null
-  const data = (await res.json()) as { access_token: string }
-  return data.access_token
+  const data = await res.json() as { access_token?: string; error?: string; error_description?: string }
+  if (!res.ok || !data.access_token) {
+    const msg = data.error_description ?? data.error ?? `HTTP ${res.status}`
+    console.error('[Gmail] Token refresh failed:', msg)
+    return { error: `Token refresh failed: ${msg}` }
+  }
+  return { token: data.access_token }
 }
 
 function getHeader(
@@ -92,10 +95,11 @@ interface SyncResult {
 }
 
 export async function syncGmailWithResult(): Promise<SyncResult> {
-  const token = await getAccessToken()
-  if (!token) {
-    return { success: false, error: 'Missing OAuth credentials (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_REFRESH_TOKEN)' }
+  const tokenResult = await getAccessToken()
+  if ('error' in tokenResult) {
+    return { success: false, error: tokenResult.error }
   }
+  const token = tokenResult.token
 
   const listRes = await fetch(
     'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30&q=in:inbox',
