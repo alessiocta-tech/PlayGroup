@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import SyncButton from '@/components/email/SyncButton'
 
 const priorityColor: Record<string, string> = {
   urgent: 'bg-red-100 text-red-700',
@@ -31,9 +32,12 @@ export default async function EmailPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-[#111111]">Email</h1>
-        <p className="text-sm text-gray-500 mt-1">Inbox aggregata con AI triage</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-extrabold text-[#111111]">Email</h1>
+          <p className="text-sm text-gray-500 mt-1">Inbox aggregata con AI triage</p>
+        </div>
+        <SyncButton />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
