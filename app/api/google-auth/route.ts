@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     url.searchParams.set('scope', scopes)
     url.searchParams.set('access_type', 'offline')
     url.searchParams.set('prompt', 'consent')
+    url.searchParams.set('login_hint', 'alessiocta@gmail.com')
 
     return NextResponse.redirect(url.toString())
   }
