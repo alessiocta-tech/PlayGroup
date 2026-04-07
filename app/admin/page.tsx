@@ -106,13 +106,13 @@ export default async function AdminDashboard() {
     <div className="space-y-4">
 
       {/* ── TOP HEADER ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#111111] capitalize">{dataOggi}</h1>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-[#111111] capitalize">{dataOggi}</h1>
           <p className="text-sm text-gray-400 mt-0.5">Ore {ora} · Benvenuto, Alessio</p>
         </div>
-        {/* Big stats right */}
-        <div className="flex items-center gap-8">
+        {/* Big stats */}
+        <div className="grid grid-cols-4 gap-4 sm:flex sm:items-center sm:gap-8">
           {[
             { label: 'Aziende', value: d.companies.length },
             { label: 'Agenti AI', value: d.agents.length },
@@ -120,15 +120,15 @@ export default async function AdminDashboard() {
             { label: 'Contatti', value: d.totalContacts },
           ].map((s) => (
             <div key={s.label} className="text-center">
-              <div className="text-3xl font-extrabold text-[#111111] leading-none">{s.value}</div>
-              <div className="text-xs text-gray-400 mt-1">{s.label}</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] leading-none">{s.value}</div>
+              <div className="text-[10px] sm:text-xs text-gray-400 mt-1">{s.label}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* ── PROGRESS PILLS ── */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Agenti attivi', value: d.agents.length > 0 ? Math.round((d.activeAgents / d.agents.length) * 100) : 0, color: 'bg-[#111111]' },
           { label: 'WA risolti AI', value: waRate, color: 'bg-[#F0C040]' },
@@ -148,7 +148,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* ── MAIN GRID ── */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
         {/* ── COL 1: Hero card ── */}
         <div className="bg-[#111111] rounded-3xl p-6 flex flex-col justify-between min-h-[340px]">
@@ -342,7 +342,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* ── BOTTOM ROW ── */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
         {/* Quick links accordion-style */}
         <div className="bg-white rounded-3xl p-5 space-y-1">
@@ -371,7 +371,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Prossimi eventi — calendar style */}
-        <div className="lg:col-span-2 bg-[#F0C040] rounded-3xl p-6">
+        <div className="sm:col-span-2 xl:col-span-2 bg-[#F0C040] rounded-3xl p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-extrabold text-[#111111]">Prossimi eventi</h2>
             <Link href="/admin/calendario" className="text-xs font-semibold text-[#111111]/50 hover:text-[#111111]">
