@@ -87,7 +87,7 @@ export async function syncGmail(): Promise<void> {
   if (!token) return
 
   const listRes = await fetch(
-    'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=is:unread%20in:inbox',
+    'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30&q=in:inbox',
     { headers: { Authorization: `Bearer ${token}` } }
   )
 
@@ -119,14 +119,13 @@ export async function syncGmail(): Promise<void> {
 
     const priority = classifyPriority(subject, fromEmail, msg.snippet)
 
-    // Deduplicate: skip if we already stored a message from this sender within 1 minute
+    // Deduplicate by Gmail message ID stored in meta
     const existing = await prisma.email.findFirst({
-      where: {
-        fromEmail,
-        timestamp: { gte: new Date(date.getTime() - 60000) },
-      },
+      where: { meta: { path: ['gmailId'], equals: id } },
     })
     if (existing) continue
+
+    const isRead = (msg as GmailMessage & { labelIds?: string[] }).labelIds?.includes('UNREAD') === false
 
     await prisma.email.create({
       data: {
@@ -135,8 +134,9 @@ export async function syncGmail(): Promise<void> {
         subject,
         bodyPreview: msg.snippet,
         priority,
-        read: false,
+        read: isRead,
         timestamp: date,
+        meta: { gmailId: id },
       },
     })
   }
