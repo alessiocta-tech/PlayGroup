@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth'
 import { NextResponse } from 'next/server'
-import { syncGmail } from '@/lib/gmail'
+import { syncGmailWithResult } from '@/lib/gmail'
 
 export async function POST() {
   const session = await auth()
@@ -9,10 +9,10 @@ export async function POST() {
   }
 
   try {
-    await syncGmail()
-    return NextResponse.json({ success: true, message: 'Gmail sync completato' })
+    const result = await syncGmailWithResult()
+    return NextResponse.json(result)
   } catch (err) {
     console.error('[Email Sync] Error:', err)
-    return NextResponse.json({ error: 'Sync fallito' }, { status: 500 })
+    return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

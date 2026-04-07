@@ -82,9 +82,20 @@ function classifyPriority(subject: string, fromEmail: string, snippet: string): 
   return 'normal'
 }
 
-export async function syncGmail(): Promise<void> {
+interface SyncResult {
+  success: boolean
+  synced?: number
+  skipped?: number
+  total?: number
+  error?: string
+  gmailError?: string
+}
+
+export async function syncGmailWithResult(): Promise<SyncResult> {
   const token = await getAccessToken()
-  if (!token) return
+  if (!token) {
+    return { success: false, error: 'Missing OAuth credentials (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_REFRESH_TOKEN)' }
+  }
 
   const listRes = await fetch(
     'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30&q=in:inbox',
@@ -92,21 +103,24 @@ export async function syncGmail(): Promise<void> {
   )
 
   if (!listRes.ok) {
-    console.error('[Gmail] List error:', await listRes.text())
-    return
+    const errText = await listRes.text()
+    console.error('[Gmail] List error:', errText)
+    return { success: false, gmailError: errText }
   }
 
   const listData = (await listRes.json()) as GmailListResponse
   const messageIds = listData.messages ?? []
+  let synced = 0
+  let skipped = 0
 
   for (const { id } of messageIds) {
     const msgRes = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
       { headers: { Authorization: `Bearer ${token}` } }
     )
-    if (!msgRes.ok) continue
+    if (!msgRes.ok) { skipped++; continue }
 
-    const msg = (await msgRes.json()) as GmailMessage
+    const msg = (await msgRes.json()) as GmailMessage & { labelIds?: string[] }
     const headers = msg.payload?.headers ?? []
 
     const from = getHeader(headers, 'from') ?? ''
@@ -119,13 +133,12 @@ export async function syncGmail(): Promise<void> {
 
     const priority = classifyPriority(subject, fromEmail, msg.snippet)
 
-    // Deduplicate by Gmail message ID stored in meta
     const existing = await prisma.email.findFirst({
       where: { meta: { path: ['gmailId'], equals: id } },
     })
-    if (existing) continue
+    if (existing) { skipped++; continue }
 
-    const isRead = (msg as GmailMessage & { labelIds?: string[] }).labelIds?.includes('UNREAD') === false
+    const isRead = msg.labelIds?.includes('UNREAD') === false
 
     await prisma.email.create({
       data: {
@@ -139,7 +152,13 @@ export async function syncGmail(): Promise<void> {
         meta: { gmailId: id },
       },
     })
+    synced++
   }
 
-  console.log(`[Gmail] Synced ${messageIds.length} emails`)
+  console.log(`[Gmail] Synced ${synced} new, skipped ${skipped} of ${messageIds.length}`)
+  return { success: true, synced, skipped, total: messageIds.length }
+}
+
+export async function syncGmail(): Promise<void> {
+  await syncGmailWithResult()
 }

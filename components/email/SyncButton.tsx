@@ -11,11 +11,12 @@ export default function SyncButton() {
     setStatus(null)
     try {
       const res = await fetch('/api/email/sync', { method: 'POST' })
-      const data = await res.json() as { success?: boolean; message?: string; error?: string }
+      const data = await res.json() as { success?: boolean; synced?: number; skipped?: number; total?: number; error?: string; gmailError?: string }
       if (data.success) {
-        setStatus('✅ Sync completato — ricarica la pagina')
+        setStatus(`✅ ${data.synced} nuove email (${data.total} totali) — ricarica la pagina`)
       } else {
-        setStatus(`❌ Errore: ${data.error ?? 'sconosciuto'}`)
+        const errMsg = data.gmailError ?? data.error ?? 'sconosciuto'
+        setStatus(`❌ ${errMsg.slice(0, 120)}`)
       }
     } catch {
       setStatus('❌ Errore di rete')
