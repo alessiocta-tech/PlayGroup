@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 // Endpoint temporaneo per pulizia dati fake — rimuovere dopo uso
-// Protetto da secret token
 export async function POST(req: NextRequest) {
-  const secret = req.headers.get('x-cleanup-secret')
-  if (secret !== process.env.NEXTAUTH_SECRET) {
+  const session = await auth()
+  if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
