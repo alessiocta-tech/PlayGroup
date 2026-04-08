@@ -19,6 +19,9 @@ export async function GET(req: NextRequest) {
       'https://www.googleapis.com/auth/gmail.modify',
       'https://www.googleapis.com/auth/calendar.readonly',
       'https://www.googleapis.com/auth/calendar.events',
+      'https://www.googleapis.com/auth/contacts.readonly',
+      'https://www.googleapis.com/auth/drive.readonly',
+      'https://www.googleapis.com/auth/tasks.readonly',
     ].join(' ')
 
     const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')

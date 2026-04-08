@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import SyncCalendarButton from '@/components/calendar/SyncCalendarButton'
+import SyncTasksButton from '@/components/tasks/SyncTasksButton'
 
 const priorityColor: Record<string, string> = {
   urgent: 'bg-red-100 text-red-700',
@@ -42,7 +43,10 @@ export default async function CalendarioPage() {
           <h1 className="text-2xl font-extrabold text-[#111111]">Calendario & Task</h1>
           <p className="text-sm text-gray-500 mt-1">Agenda, impegni e attività da completare</p>
         </div>
-        <SyncCalendarButton />
+        <div className="flex items-center gap-3 flex-wrap">
+          <SyncCalendarButton />
+          <SyncTasksButton />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

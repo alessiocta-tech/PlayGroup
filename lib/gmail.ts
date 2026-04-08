@@ -17,7 +17,7 @@ interface GmailListResponse {
   nextPageToken?: string
 }
 
-async function getAccessToken(): Promise<{ token: string } | { error: string }> {
+export async function getAccessToken(): Promise<{ token: string } | { error: string }> {
   const clientId = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN
