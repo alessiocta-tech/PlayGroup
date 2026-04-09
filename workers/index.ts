@@ -6,6 +6,8 @@ import {
   syncEmailQueue,
   syncFattureQueue,
   alertsQueue,
+  syncContactsQueue,
+  syncTasksQueue,
 } from './queues'
 import { startBriefingWorker } from './briefing'
 import { startCalendarWorker } from './sync-calendar'
@@ -13,6 +15,8 @@ import { startEmailWorker } from './sync-email'
 import { startAlertsWorker } from './alerts'
 import { startSyncKpiWorker } from './sync-kpi'
 import { startSyncFattureWorker } from './sync-fatture'
+import { startSyncContactsWorker } from './sync-contacts'
+import { startSyncTasksWorker } from './sync-tasks'
 
 console.log('[Worker] Starting Play Group background workers...')
 
@@ -23,6 +27,8 @@ startEmailWorker()
 startAlertsWorker()
 startSyncKpiWorker()
 startSyncFattureWorker()
+startSyncContactsWorker()
+startSyncTasksWorker()
 
 // Schedule recurring jobs
 async function scheduleJobs(): Promise<void> {
@@ -84,6 +90,28 @@ async function scheduleJobs(): Promise<void> {
   // Check alerts (tax deadlines, KPI anomalies) every hour
   await alertsQueue.add(
     'alerts-check',
+    {},
+    {
+      repeat: { pattern: '0 * * * *' },
+      removeOnComplete: 5,
+      removeOnFail: 5,
+    }
+  )
+
+  // Sync Google Contacts every 6 hours
+  await syncContactsQueue.add(
+    'contacts-sync',
+    {},
+    {
+      repeat: { pattern: '0 */6 * * *' },
+      removeOnComplete: 5,
+      removeOnFail: 5,
+    }
+  )
+
+  // Sync Google Tasks every hour
+  await syncTasksQueue.add(
+    'tasks-sync',
     {},
     {
       repeat: { pattern: '0 * * * *' },

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import ImportHealthButton from '@/components/health/ImportHealthButton'
 
 export default async function SalutePage() {
   const [metrics, workouts] = await Promise.all([
@@ -47,9 +48,12 @@ export default async function SalutePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-[#111111]">Salute & Sport</h1>
-        <p className="text-sm text-gray-500 mt-1">Metriche salute e allenamenti</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-extrabold text-[#111111]">Salute & Sport</h1>
+          <p className="text-sm text-gray-500 mt-1">Metriche salute e allenamenti</p>
+        </div>
+        <ImportHealthButton />
       </div>
 
       {/* Latest metrics */}
