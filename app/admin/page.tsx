@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import SyncAllButton from '@/components/dashboard/SyncAllButton'
 
 async function getDashboardData() {
   const today = new Date()
@@ -110,6 +111,9 @@ export default async function AdminDashboard() {
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-[#111111] capitalize">{dataOggi}</h1>
           <p className="text-sm text-gray-400 mt-0.5">Ore {ora} · Benvenuto, Alessio</p>
+          <div className="mt-2">
+            <SyncAllButton />
+          </div>
         </div>
         {/* Big stats */}
         <div className="grid grid-cols-4 gap-4 sm:flex sm:items-center sm:gap-8">
