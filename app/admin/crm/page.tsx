@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import SyncContactsButton from '@/components/crm/SyncContactsButton'
+import SyncAllButton from '@/components/dashboard/SyncAllButton'
 
 const typeColor: Record<string, string> = {
   socio: 'bg-purple-100 text-purple-700',
@@ -40,7 +40,7 @@ export default async function CrmPage() {
             Soci, partner, investitori e contatti chiave
           </p>
         </div>
-        <SyncContactsButton />
+        <SyncAllButton />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
