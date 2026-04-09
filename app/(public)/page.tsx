@@ -27,6 +27,12 @@ export default function HomePage() {
           >
             Contattaci
           </Link>
+          <Link
+            href="/login"
+            className="text-gray-400 text-xs py-2 hover:text-gray-600 transition-colors"
+          >
+            Accedi al gestionale →
+          </Link>
         </div>
       </div>
 
