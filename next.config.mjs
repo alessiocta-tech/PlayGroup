@@ -1,7 +1,18 @@
-// PWA disabled until CSS build issue resolved
-// import withPWAInit from '@ducanh2912/next-pwa'
+import withPWAInit from '@ducanh2912/next-pwa'
 
 const isProd = process.env.ENVIRONMENT === 'production'
+
+const withPWA = withPWAInit({
+  dest: 'public',
+  // Only activate SW in production — avoids CSS hot-reload issues in dev
+  disable: !isProd,
+  register: true,
+  reloadOnOnline: true,
+  workboxOptions: {
+    skipWaiting: true,
+    clientsClaim: true,
+  },
+})
 
 // CSP: permetti solo origini necessarie
 // - self: pagine Next.js
@@ -57,4 +68,4 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+export default withPWA(nextConfig)

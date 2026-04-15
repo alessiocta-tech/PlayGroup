@@ -21,6 +21,8 @@
     "@auth/prisma-adapter": "^2.7.2",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@prisma/client": "^5.22.0",
+    "@simplewebauthn/browser": "^9.0.1",
+    "@simplewebauthn/server": "^9.0.3",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.13.0",
     "dotenv": "^17.4.0",

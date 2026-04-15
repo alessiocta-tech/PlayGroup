@@ -22,8 +22,29 @@ model User {
   createdAt     DateTime  @default(now())
   lastLogin     DateTime?
 
-  accounts Account[]
-  sessions Session[]
+  accounts             Account[]
+  sessions             Session[]
+  webAuthnCredentials  WebAuthnCredential[]
+}
+
+// ─── WEBAUTHN ────────────────────────────────────────────────────────────────
+
+model WebAuthnCredential {
+  id           String    @id @default(cuid())
+  userId       String
+  credentialId String    @unique // base64url
+  publicKey    Bytes              // Uint8Array → bytea in PostgreSQL
+  counter      BigInt    @default(0)
+  deviceType   String    @default("singleDevice")
+  backedUp     Boolean   @default(false)
+  transports   String[]  @default([])
+  label        String    @default("Dispositivo")
+  createdAt    DateTime  @default(now())
+  lastUsed     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Account {

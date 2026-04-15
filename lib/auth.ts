@@ -7,6 +7,7 @@ import { authConfig } from '@/lib/auth.config'
 import { sendTelegram } from '@/lib/telegram'
 import { RateLimiterRes } from 'rate-limiter-flexible'
 import { loginConsumeOrThrow, loginReward } from '@/lib/rate-limit'
+import { verifyWebAuthnToken } from '@/lib/webauthn'
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -29,6 +30,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       async authorize(credentials, request) {
+        // ── WebAuthn fast-path ───────────────────────────────────────────────
+        // Short-lived HMAC token issued after fingerprint verification
+        if (typeof credentials?.webauthnToken === 'string' && credentials.webauthnToken) {
+          const data = verifyWebAuthnToken(credentials.webauthnToken)
+          if (!data) return null
+
+          const user = await prisma.user.findUnique({ where: { id: data.userId } })
+          if (!user) return null
+
+          const ip =
+            request?.headers?.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+            request?.headers?.get('x-real-ip') ??
+            '0.0.0.0'
+
+          await prisma.user.update({ where: { id: user.id }, data: { lastLogin: new Date() } })
+          await prisma.auditLog.create({
+            data: { userId: user.id, action: 'LOGIN', resource: 'auth', ip, meta: { method: 'webauthn' } },
+          }).catch(() => null)
+
+          return { id: user.id, email: user.email, name: user.name }
+        }
+
         const parsed = loginSchema.safeParse(credentials)
         if (!parsed.success) return null
 
