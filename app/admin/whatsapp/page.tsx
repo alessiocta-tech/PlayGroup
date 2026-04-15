@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma'
+import WhatsappConnect from '@/components/whatsapp/WhatsappConnect'
+import WhatsappTaskAnalysis from '@/components/whatsapp/WhatsappTaskAnalysis'
 
 export default async function WhatsAppPage() {
   const [messages, companies] = await Promise.all([
@@ -22,12 +24,25 @@ export default async function WhatsAppPage() {
     (m) => new Date(m.timestamp).toDateString() === todayStr
   ).length
 
+  // Recent inbound for AI analysis (last 20, unresolved or not-yet-escalated)
+  const recentInbound = inbound.slice(0, 20).map((m) => ({
+    id: m.id,
+    contactName: m.contactName ?? m.contactPhone,
+    message: m.message,
+    timestamp: m.timestamp.toISOString(),
+    handledByAi: m.handledByAi,
+    escalated: m.escalated,
+  }))
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-extrabold text-[#111111]">WhatsApp Business</h1>
         <p className="text-sm text-gray-500 mt-1">Messaggi e gestione escalation</p>
       </div>
+
+      {/* WhatsApp connection status / QR code */}
+      <WhatsappConnect />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -60,6 +75,11 @@ export default async function WhatsAppPage() {
           <div className="text-3xl font-extrabold text-[#111111]">{inboundToday}</div>
         </div>
       </div>
+
+      {/* AI task analysis */}
+      {recentInbound.length > 0 && (
+        <WhatsappTaskAnalysis messages={recentInbound} />
+      )}
 
       {/* Escalation alert */}
       {escalated.length > 0 && (

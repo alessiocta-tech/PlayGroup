@@ -3,6 +3,12 @@
 import { Suspense, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
+
+// Lazy-load: WebAuthn browser APIs only available client-side
+const BiometricLogin = dynamic(() => import('@/components/auth/BiometricLogin'), {
+  ssr: false,
+})
 
 function LoginForm() {
   const router = useRouter()
@@ -35,51 +41,66 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div>
-        <label className="block text-sm font-semibold text-[#111111] mb-2">
-          Email
-        </label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-          placeholder="alessio@playgroupsrl.it"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#EFEFEA] text-[#111111] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F0C040] focus:border-transparent text-sm"
-        />
-      </div>
+    <div className="space-y-5">
+      {/* Biometric primary CTA */}
+      <BiometricLogin callbackUrl={callbackUrl} />
 
-      <div>
-        <label className="block text-sm font-semibold text-[#111111] mb-2">
-          Password
-        </label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-          placeholder="••••••••"
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#EFEFEA] text-[#111111] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F0C040] focus:border-transparent text-sm"
-        />
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
-          {error}
+      {/* Password fallback */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="px-3 bg-white text-gray-400">accesso con password</span>
+          </div>
         </div>
-      )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-[#F0C040] hover:bg-[#e6b630] disabled:opacity-60 text-[#111111] font-bold py-3 px-4 rounded-xl transition-colors text-sm"
-      >
-        {loading ? 'Accesso in corso...' : 'Accedi'}
-      </button>
-    </form>
+        <div>
+          <label className="block text-sm font-semibold text-[#111111] mb-2">
+            Email
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            placeholder="alessio@playgroupsrl.it"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#EFEFEA] text-[#111111] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F0C040] focus:border-transparent text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-[#111111] mb-2">
+            Password
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            placeholder="••••••••"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#EFEFEA] text-[#111111] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F0C040] focus:border-transparent text-sm"
+          />
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
+            {error}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-[#F0C040] hover:bg-[#e6b630] disabled:opacity-60 text-[#111111] font-bold py-3 px-4 rounded-xl transition-colors text-sm"
+        >
+          {loading ? 'Accesso in corso...' : 'Accedi'}
+        </button>
+      </form>
+    </div>
   )
 }
 

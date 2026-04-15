@@ -31,7 +31,9 @@ export async function GET(req: NextRequest) {
     url.searchParams.set('scope', scopes)
     url.searchParams.set('access_type', 'offline')
     url.searchParams.set('prompt', 'consent')
-    url.searchParams.set('login_hint', 'alessiocta@gmail.com')
+    // Legge l'email dal query param o dall'env — non hardcoded
+    const hint = req.nextUrl.searchParams.get('hint') ?? process.env.GOOGLE_LOGIN_HINT ?? ''
+    if (hint) url.searchParams.set('login_hint', hint)
 
     return NextResponse.redirect(url.toString())
   }

@@ -5,6 +5,42 @@ import { useState, useRef, useEffect } from 'react'
 interface Message {
   role: 'user' | 'assistant'
   content: string
+  tools?: ToolEvent[]
+}
+
+interface ToolEvent {
+  tool: string
+  status: 'running' | 'done' | 'error'
+  result?: string
+}
+
+const TOOL_LABELS: Record<string, string> = {
+  create_task:          'Crea task',
+  send_telegram:        'Invia Telegram',
+  update_agent_status:  'Aggiorna agente',
+  create_notification:  'Crea notifica',
+}
+
+function ToolBadge({ event }: { event: ToolEvent }) {
+  const label = TOOL_LABELS[event.tool] ?? event.tool
+  return (
+    <div className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-lg w-fit ${
+      event.status === 'running'
+        ? 'bg-white/[0.06] text-gray-400'
+        : event.status === 'error'
+        ? 'bg-red-900/30 text-red-400'
+        : 'bg-[#F0C040]/10 text-[#F0C040]'
+    }`}>
+      {event.status === 'running' ? (
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse flex-shrink-0" />
+      ) : event.status === 'error' ? (
+        <span className="flex-shrink-0">✗</span>
+      ) : (
+        <span className="flex-shrink-0">✓</span>
+      )}
+      <span>{label}</span>
+    </div>
+  )
 }
 
 export default function AgentChat() {
@@ -32,7 +68,7 @@ export default function AgentChat() {
     setInput('')
     setLoading(true)
 
-    const assistantMsg: Message = { role: 'assistant', content: '' }
+    const assistantMsg: Message = { role: 'assistant', content: '', tools: [] }
     setMessages([...newMessages, assistantMsg])
 
     try {
@@ -71,13 +107,33 @@ export default function AgentChat() {
           if (data === '[DONE]') continue
 
           try {
-            const parsed = JSON.parse(data) as { text: string }
-            accumulated += parsed.text
-            setMessages((prev) => {
-              const copy = [...prev]
-              copy[copy.length - 1] = { role: 'assistant', content: accumulated }
-              return copy
-            })
+            const parsed = JSON.parse(data) as
+              | { text: string }
+              | { tool: string; status: 'running' | 'done' | 'error'; result?: string }
+
+            if ('text' in parsed) {
+              accumulated += parsed.text
+              setMessages((prev) => {
+                const copy = [...prev]
+                const last = copy[copy.length - 1]
+                copy[copy.length - 1] = { ...last, content: accumulated }
+                return copy
+              })
+            } else if ('tool' in parsed) {
+              setMessages((prev) => {
+                const copy = [...prev]
+                const last = { ...copy[copy.length - 1] }
+                const tools = [...(last.tools ?? [])]
+                const idx = tools.findLastIndex((t) => t.tool === parsed.tool && t.status === 'running')
+                if (parsed.status === 'running') {
+                  tools.push({ tool: parsed.tool, status: 'running' })
+                } else if (idx !== -1) {
+                  tools[idx] = { tool: parsed.tool, status: parsed.status, result: parsed.result }
+                }
+                copy[copy.length - 1] = { ...last, tools }
+                return copy
+              })
+            }
           } catch {
             // ignore parse errors
           }
@@ -161,7 +217,7 @@ export default function AgentChat() {
             )}
 
             {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div
                   className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${
                     msg.role === 'user'
@@ -177,6 +233,13 @@ export default function AgentChat() {
                     </span>
                   )}
                 </div>
+                {msg.tools && msg.tools.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1 max-w-[85%]">
+                    {msg.tools.map((t, j) => (
+                      <ToolBadge key={j} event={t} />
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             <div ref={bottomRef} />
