@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { anthropic } from '@/lib/claude'
 import { sendWhapiMessage } from '@/lib/whapi'
 import { sendTelegram } from '@/lib/telegram'
+import { rateLimit } from '@/lib/rate-limit'
 
 // Whapi webhook payload types
 interface WhapiContact {
@@ -49,6 +50,9 @@ ESCALA (rispondi SOLO con "ESCALA: [motivo breve]"):
 Non rivelare di essere un AI a meno che non venga chiesto direttamente.`
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, 'whatsapp')
+  if (limited) return limited
+
   try {
     const payload = await req.json() as WhapiWebhookPayload
     const messages = payload.messages ?? []
@@ -86,7 +90,8 @@ export async function POST(req: NextRequest) {
       })
 
       const aiText = aiResponse.content[0].type === 'text' ? aiResponse.content[0].text : ''
-      const shouldEscalate = aiText.toUpperCase().startsWith('ESCALA')
+      // Match "ESCALA" o "ESCALA:" all'inizio del testo, case-insensitive, con spazi opzionali
+      const shouldEscalate = /^ESCALA\s*:/i.test(aiText.trim())
 
       if (shouldEscalate) {
         // Mark as escalated

@@ -20,15 +20,17 @@ import { startSyncTasksWorker } from './sync-tasks'
 
 console.log('[Worker] Starting Play Group background workers...')
 
-// Start all workers
-startBriefingWorker()
-startCalendarWorker()
-startEmailWorker()
-startAlertsWorker()
-startSyncKpiWorker()
-startSyncFattureWorker()
-startSyncContactsWorker()
-startSyncTasksWorker()
+// Start all workers — keep references for graceful shutdown
+const workers = [
+  startBriefingWorker(),
+  startCalendarWorker(),
+  startEmailWorker(),
+  startAlertsWorker(),
+  startSyncKpiWorker(),
+  startSyncFattureWorker(),
+  startSyncContactsWorker(),
+  startSyncTasksWorker(),
+]
 
 // Schedule recurring jobs
 async function scheduleJobs(): Promise<void> {
@@ -125,8 +127,13 @@ async function scheduleJobs(): Promise<void> {
 
 scheduleJobs().catch(console.error)
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('[Worker] Shutting down...')
+// Graceful shutdown — close all workers before exit to avoid job loss
+async function shutdown(): Promise<void> {
+  console.log('[Worker] Shutting down gracefully...')
+  await Promise.all(workers.map((w) => w.close()))
+  console.log('[Worker] All workers closed')
   process.exit(0)
-})
+}
+
+process.on('SIGTERM', () => { shutdown().catch(console.error) })
+process.on('SIGINT', () => { shutdown().catch(console.error) })

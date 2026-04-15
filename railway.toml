@@ -1,10 +1,26 @@
+# ── SERVICE: web ──────────────────────────────────────────────────────────────
+# Questo file configura il servizio "web" (Next.js).
+#
+# Per il servizio "worker" (BullMQ), crea un secondo servizio Railway
+# dallo stesso repo con questi parametri nel dashboard:
+#   Build Command:  npx prisma generate
+#   Start Command:  npx tsx workers/index.ts
+#   No healthcheck needed for worker
+#
+# Variabili d'ambiente da impostare su ENTRAMBI i servizi Railway:
+#   DATABASE_URL, REDIS_URL, NEXTAUTH_SECRET, ANTHROPIC_API_KEY,
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GOOGLE_CLIENT_ID,
+#   GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, FATTURA24_API_KEY,
+#   WHAPI_TOKEN, ENVIRONMENT=production, NEXTAUTH_URL=https://playgroupsrl.it
+# ─────────────────────────────────────────────────────────────────────────────
+
 [build]
 builder = "nixpacks"
 buildCommand = "npx prisma generate && npm run build"
 
 [deploy]
 startCommand = "npx prisma migrate deploy && npm run start"
-healthcheckPath = "/"
+healthcheckPath = "/api/auth/session"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3

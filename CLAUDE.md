@@ -5,7 +5,62 @@
 > **Stack**: Next.js 14 + Prisma + PostgreSQL + BullMQ + Railway
 > **Dominio**: playgroupsrl.it (SiteGround DNS → Railway)
 > **Admin URL**: playgroupsrl.it/admin (area riservata, solo Alessio)
-> **Stato**: Fase 1a completata — in attesa conferma per Fase 1b
+> **Stato**: Fase 1–7 completate — pronto per deploy Railway (Fase 8) + sito pubblico (Fase 2)
+> **Ultima analisi**: 2026-04-14 — 79 file, ~8.000 righe TypeScript, 24 modelli Prisma
+
+---
+
+## STATO ATTUALE (2026-04-14)
+
+### Metriche codebase
+| Metrica | Valore |
+|---|---|
+| File TypeScript/TSX | 79 |
+| Righe di codice | ~8.000 |
+| Modelli Prisma | 24 |
+| API routes | 15 |
+| BullMQ workers | 8 |
+| Componenti React | 15 |
+| Integrazioni esterne | 8 (Gmail, Calendar, Contacts, Tasks, Drive, Fattura24, WhatsApp, Telegram, HA) |
+
+### Cosa funziona oggi (con seed data)
+- ✅ Login NextAuth → area `/admin` completamente funzionante
+- ✅ 12 pagine admin con dati Prisma reali (non mock)
+- ✅ Chat AI streaming con contesto dashboard completo
+- ✅ WhatsApp webhook → Claude → risposta autonoma → escalation Telegram
+- ✅ Morning briefing BullMQ ore 8:00 → Telegram
+- ✅ Tutti gli 8 worker BullMQ schedulati e funzionanti
+- ✅ Import CSV Apple Health
+- ✅ Home Assistant webhook → aggiornamento dispositivi
+- ✅ Seed DB con dati realistici (alessio@playgroupsrl.it / admin123)
+
+### Cosa richiede configurazione prima di andare live
+1. **`GOOGLE_REFRESH_TOKEN`** — visita `/api/google-auth` dopo il deploy per ottenerlo
+2. **Worker Railway** — secondo servizio da creare nel dashboard
+3. **DNS** — record A SiteGround → IP Railway
+4. **Variabili prod** — DATABASE_URL, REDIS_URL da Railway dashboard
+
+### Cosa non è ancora implementato
+- Sito pubblico `/chi-siamo`, `/contatti`, `/lavora-con-noi`, `/aziende/[slug]`
+- Tool calls agente AI (crea task, invia Telegram da chat)
+- PWA (disabilitata temporaneamente per issue CSS build)
+- Rate limiting (installato ma non applicato)
+- 2FA TOTP (struttura DB pronta, logica non enforced)
+
+---
+
+## BUG NOTI E ISSUE TECNICHE
+
+| # | Severità | File | Descrizione |
+|---|---|---|---|
+| 1 | HIGH | `app/api/whatsapp/route.ts` | Escalation detection `startsWith('ESCALA')` fragile — migliorare con regex |
+| 2 | MEDIUM | `app/api/google-auth/route.ts` | Email `alessiocta@gmail.com` hardcoded nel `login_hint` |
+| 3 | MEDIUM | `workers/index.ts` | SIGTERM handler non chiude worker con `await worker.close()` — possibile job loss |
+| 4 | MEDIUM | `app/api/health/import/route.ts` | Cast `toFixed(2) as unknown as number` unsafe per campi Decimal Prisma |
+| 5 | LOW | `lib/whapi.ts` | `sendWhapiMessage()` non rilancia eccezioni, solo log silenzioso |
+| 6 | LOW | `app/api/claude-code/register/route.ts` | Auth con `NEXTAUTH_SECRET` come bearer token — non ideale per integrazione esterna |
+| 7 | INFO | `package.json` | `rate-limiter-flexible` installato ma non ancora usato in nessuna route |
+| 8 | INFO | `lib/auth.ts` | Campo `twoFaDone` presente ma middleware non lo verifica |
 
 ---
 
@@ -654,112 +709,121 @@ model Notification {
 
 ## STRUTTURA PROGETTO
 
+⚠️ Struttura aggiornata al 2026-04-14 — riflette i file effettivamente presenti nel repo.
+
 ```
 play-group/
 ├── CLAUDE.md
-├── README.md
-├── railway.toml
+├── railway.toml                 ← web service config; worker configurato nel dashboard Railway
 ├── docker-compose.yml           ← postgres + redis locali per sviluppo
-├── .env.example
+├── .env.example                 ← template completo con tutte le variabili
 ├── .env.local                   ← mai in git (.gitignore)
 ├── package.json
-├── next.config.mjs              ← security headers + PWA config (Next.js 14 non supporta .ts)
+├── next.config.mjs              ← security headers (HSTS solo PROD) + PWA disabilitato temporaneamente
 ├── tailwind.config.ts
 ├── tsconfig.json
 ├── middleware.ts                ← protezione /admin/* (root, non dentro /app)
 │
 ├── prisma/
-│   ├── schema.prisma
-│   ├── seed.ts
+│   ├── schema.prisma            ← 24 modelli, multi-tenant, relazioni complete
+│   ├── seed.ts                  ← seed realistico: 4 aziende, KPI, agenti, contatti, ecc.
+│   ├── cleanup.ts               ← elimina dati fake mantenendo quelli reali
 │   └── migrations/
-│
-├── types/
-│   └── index.ts                 ← tipi derivati da Prisma + tipi condivisi app
 │
 ├── app/
 │   ├── layout.tsx               ← root layout (font DM Sans, meta globali)
 │   ├── globals.css
 │   │
-│   ├── (public)/                ── SITO PUBBLICO ──
-│   │   ├── layout.tsx           ← Navbar + Footer
-│   │   ├── page.tsx             ← homepage
-│   │   ├── chi-siamo/page.tsx
-│   │   ├── aziende/
-│   │   │   ├── page.tsx
-│   │   │   ├── derione/page.tsx
-│   │   │   ├── play-viaggi/page.tsx
-│   │   │   ├── case-vacanze/page.tsx
-│   │   │   └── palermo-ft/page.tsx
-│   │   ├── contatti/page.tsx
-│   │   └── lavora-con-noi/page.tsx
+│   ├── (public)/                ── SITO PUBBLICO (parziale) ──
+│   │   ├── layout.tsx           ← Navbar + Footer ✅
+│   │   └── page.tsx             ← homepage base ✅ (Fase 2: pagine mancanti)
 │   │
-│   ├── admin/                   ── AREA PRIVATA /admin ──
-│   │   ├── layout.tsx           ← Sidebar + TopBar (auth verificata da middleware)
-│   │   ├── page.tsx             ← dashboard principale
-│   │   ├── aziende/page.tsx
-│   │   ├── agenti/page.tsx
-│   │   ├── whatsapp/page.tsx
-│   │   ├── email/page.tsx
-│   │   ├── crm/page.tsx
-│   │   ├── calendario/page.tsx
-│   │   ├── contabilita/page.tsx
-│   │   ├── salute/page.tsx
-│   │   ├── casa/page.tsx
-│   │   ├── domotica/page.tsx
-│   │   ├── bug-tracker/page.tsx
-│   │   └── bull-board/          ← monitor code BullMQ (protetto da auth)
+│   ├── admin/                   ── AREA PRIVATA /admin (completa) ──
+│   │   ├── layout.tsx           ← Sidebar + TopBar + AgentChat floating ✅
+│   │   ├── page.tsx             ← dashboard principale con KPI, chart, task ✅
+│   │   ├── aziende/page.tsx     ✅
+│   │   ├── agenti/page.tsx      ✅
+│   │   ├── claude-code/page.tsx ✅
+│   │   ├── whatsapp/page.tsx    ✅
+│   │   ├── email/page.tsx       ✅
+│   │   ├── crm/page.tsx         ✅
+│   │   ├── calendario/page.tsx  ✅
+│   │   ├── contabilita/page.tsx ✅
+│   │   ├── salute/page.tsx      ✅
+│   │   ├── casa/page.tsx        ✅
+│   │   ├── domotica/page.tsx    ✅
+│   │   └── bug-tracker/page.tsx ✅
 │   │
-│   ├── login/page.tsx           ← pagina login NextAuth
+│   ├── login/page.tsx           ← pagina login NextAuth ✅
 │   │
 │   └── api/
-│       ├── auth/[...nextauth]/route.ts
-│       ├── chat/route.ts        ← Claude streaming SSE
-│       ├── whatsapp/route.ts    ← Whapi webhook
-│       ├── home/route.ts        ← Home Assistant webhook
-│       └── cron/route.ts        ← trigger BullMQ jobs
+│       ├── auth/[...nextauth]/route.ts  ✅
+│       ├── chat/route.ts               ← Claude streaming SSE ✅
+│       ├── whatsapp/route.ts           ← Whapi webhook + AI + escalation ✅
+│       ├── home/route.ts               ← Home Assistant webhook ✅
+│       ├── cron/route.ts               ← trigger manuale BullMQ jobs ✅
+│       ├── sync-all/route.ts           ← sync parallelo email+cal+contacts+tasks ✅
+│       ├── email/sync/route.ts         ✅
+│       ├── calendar/sync/route.ts      ✅
+│       ├── contacts/sync/route.ts      ✅
+│       ├── tasks/sync/route.ts         ✅
+│       ├── health/import/route.ts      ← import CSV Apple Health ✅
+│       ├── drive/files/route.ts        ← Google Drive files ✅
+│       ├── claude-code/register/route.ts ← registra istanza CC ✅
+│       ├── google-auth/route.ts        ← OAuth flow → ottieni GOOGLE_REFRESH_TOKEN ✅
+│       ├── debug-env/route.ts          ← debug variabili (auth protetto) ✅
+│       └── admin-cleanup/route.ts      ← elimina dati fake ✅
 │
 ├── components/
-│   ├── public/                  ← sito pubblico
-│   │   ├── Navbar.tsx
-│   │   ├── Footer.tsx
-│   │   ├── HeroSection.tsx
-│   │   └── AziendeShowcase.tsx
-│   ├── layout/                  ← area admin
-│   │   ├── Sidebar.tsx
-│   │   └── TopBar.tsx
+│   ├── public/
+│   │   ├── Navbar.tsx           ✅ (con mobile menu)
+│   │   ├── Footer.tsx           ✅
+│   │   └── AziendeFilter.tsx    ✅
+│   ├── layout/
+│   │   ├── Sidebar.tsx          ✅ (12+ nav items)
+│   │   └── TopBar.tsx           ✅
 │   ├── dashboard/
-│   │   ├── KPIBar.tsx
-│   │   ├── AgentsCard.tsx
-│   │   ├── ClaudeCodeCard.tsx
-│   │   ├── WhatsAppCard.tsx
-│   │   ├── RevenueChart.tsx
-│   │   └── AziendeGrid.tsx
+│   │   └── SyncAllButton.tsx    ✅
+│   ├── calendar/
+│   │   └── SyncCalendarButton.tsx ✅
+│   ├── crm/
+│   │   └── SyncContactsButton.tsx ✅
+│   ├── email/
+│   │   └── SyncButton.tsx       ✅
+│   ├── health/
+│   │   └── ImportHealthButton.tsx ✅
+│   ├── tasks/
+│   │   └── SyncTasksButton.tsx  ✅
 │   └── chat/
-│       └── AgentChat.tsx        ← chat AI sempre visibile in admin
+│       └── AgentChat.tsx        ← chat AI floating, streaming SSE ✅
 │
 ├── lib/
-│   ├── prisma.ts                ← singleton Prisma client
-│   ├── auth.ts                  ← NextAuth config (Credentials provider)
-│   ├── claude.ts                ← agente AI + context builder
-│   ├── telegram.ts
-│   ├── whapi.ts
-│   ├── google-cal.ts
-│   ├── gmail.ts
-│   └── fattura24.ts
+│   ├── prisma.ts                ← singleton PrismaClient ✅
+│   ├── auth.ts + auth.config.ts ← NextAuth v5, bcrypt, JWT ✅
+│   ├── claude.ts                ← Anthropic SDK + buildDashboardContext() ✅
+│   ├── telegram.ts              ✅
+│   ├── whapi.ts                 ✅
+│   ├── gmail.ts                 ← sync + priority classification ✅
+│   ├── google-cal.ts            ← sync 30gg forward ✅
+│   ├── google-contacts.ts       ← upsert via email ✅
+│   ├── google-tasks.ts          ← sync task lists ✅
+│   ├── google-drive.ts          ← list files ✅
+│   └── fattura24.ts             ← sync fatture + scadenze IVA ✅
 │
-├── workers/                     ← BullMQ (Railway service "worker")
-│   ├── index.ts                 ← entry point (tsx workers/index.ts)
-│   ├── queues.ts                ← definizione code Redis
-│   ├── briefing.ts              ← morning briefing ore 8:00
-│   ├── sync-kpi.ts              ← sync deRione MySQL ogni ora
-│   ├── sync-fatture.ts          ← sync Fattura24 ogni 6h
-│   ├── sync-calendar.ts         ← sync Google Cal ogni 30min
-│   ├── sync-email.ts            ← triage Gmail ogni 15min
-│   └── alerts.ts                ← scadenze fiscali, anomalie KPI
+├── workers/                     ← BullMQ (Railway service "worker": tsx workers/index.ts)
+│   ├── index.ts                 ← bootstrap + cron scheduling ✅
+│   ├── queues.ts                ← 8 code Redis ✅
+│   ├── briefing.ts              ← morning briefing ore 8:00 Roma ✅
+│   ├── sync-kpi.ts              ← deRione API ogni ora ✅
+│   ├── sync-fatture.ts          ← Fattura24 ogni 6h ✅
+│   ├── sync-calendar.ts         ← Google Cal ogni 30min ✅
+│   ├── sync-email.ts            ← Gmail ogni 15min ✅
+│   ├── sync-contacts.ts         ← Google Contacts ogni 6h ✅
+│   ├── sync-tasks.ts            ← Google Tasks ogni ora ✅
+│   └── alerts.ts                ← scadenze fiscali ogni ora ✅
 │
 └── public/
     ├── manifest.json            ← PWA manifest
-    │                              (sw.js generato automaticamente da @ducanh2912/next-pwa)
     └── icons/                   ← icone PWA (192x192, 512x512)
 ```
 
@@ -767,20 +831,17 @@ play-group/
 
 ## VARIABILI AMBIENTE
 
+Vedere `.env.example` per il template completo con istruzioni.
+Variabili obbligatorie per il funzionamento:
+
 ```env
 # ── Database ──────────────────────────────────────
-# DEV (docker-compose locale)
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/playgroup
-# PROD (Railway — da sostituire al deploy)
-# DATABASE_URL=postgresql://user:pass@railway-host/playgroup
-
 REDIS_URL=redis://localhost:6379/0
-# PROD: REDIS_URL=redis://railway-redis:6379/0
 
 # ── Auth ──────────────────────────────────────────
-NEXTAUTH_URL=http://localhost:3000
-# PROD: NEXTAUTH_URL=https://playgroupsrl.it
-NEXTAUTH_SECRET=genera-con-openssl-rand-base64-32
+NEXTAUTH_URL=http://localhost:3000          # PROD: https://playgroupsrl.it
+NEXTAUTH_SECRET=<openssl rand -base64 32>
 
 # ── AI ────────────────────────────────────────────
 ANTHROPIC_API_KEY=
@@ -789,49 +850,76 @@ ANTHROPIC_API_KEY=
 WHAPI_TOKEN=
 WHAPI_BASE_URL=https://gate.whapi.cloud
 
-# ── Notifiche ─────────────────────────────────────
+# ── Telegram ──────────────────────────────────────
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 
-# ── Google ────────────────────────────────────────
+# ── Google OAuth (tutte le integrazioni Google usano queste) ──
+# Ottenere GOOGLE_REFRESH_TOKEN visitando /api/google-auth dopo il deploy
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=
+GOOGLE_REFRESH_TOKEN=               ← CRITICO: senza questo nessuna sync Google funziona
 
-# ── Servizi ───────────────────────────────────────
+# ── deRione KPI (opzionale) ───────────────────────
+DERIONE_KPI_URL=                    ← endpoint API deRione per sync KPI orario
+DERIONE_KPI_TOKEN=
+
+# ── Fattura24 ─────────────────────────────────────
 FATTURA24_API_KEY=
+
+# ── Home Assistant ────────────────────────────────
 HOME_ASSISTANT_URL=
 HOME_ASSISTANT_TOKEN=
+HA_WEBHOOK_SECRET=                  ← opzionale, per verificare webhook HA
 
 # ── App ───────────────────────────────────────────
 NEXT_PUBLIC_URL=http://localhost:3000
-# PROD: NEXT_PUBLIC_URL=https://playgroupsrl.it
-ENVIRONMENT=development
+ENVIRONMENT=development             # PROD: production (abilita HSTS)
 
-# ── Sicurezza (solo PROD - Fase 9) ────────────────
-# FIELD_ENCRYPTION_KEY=genera-con-openssl-rand-hex-32
+# ── Sicurezza (solo PROD — Fase 9) ────────────────
+# FIELD_ENCRYPTION_KEY=<openssl rand -hex 32>
 ```
 
 ---
 
 ## RAILWAY DEPLOY CONFIG
 
+Railway richiede **due servizi separati** dallo stesso repo GitHub:
+
+### Servizio `web` (Next.js)
+Configurato in `railway.toml` — viene letto automaticamente da Railway:
 ```toml
-# railway.toml
 [build]
 builder = "nixpacks"
+buildCommand = "npx prisma generate && npm run build"
 
-[[services]]
-name = "web"
-source = "."
-startCommand = "npx prisma migrate deploy && next start"
-healthcheckPath = "/"
-
-[[services]]
-name = "worker"
-source = "."
-startCommand = "npx tsx workers/index.ts"
+[deploy]
+startCommand = "npx prisma migrate deploy && npm run start"
+healthcheckPath = "/api/auth/session"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
 ```
+
+### Servizio `worker` (BullMQ)
+Creare secondo servizio nel dashboard Railway → stesso repo → impostare:
+- **Build Command**: `npx prisma generate`
+- **Start Command**: `npx tsx workers/index.ts`
+- **No healthcheck** (worker non espone HTTP)
+
+### Variabili da impostare su ENTRAMBI i servizi
+`DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_SECRET`, `ANTHROPIC_API_KEY`,
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `FATTURA24_API_KEY`,
+`WHAPI_TOKEN`, `ENVIRONMENT=production`, `NEXTAUTH_URL=https://playgroupsrl.it`,
+`NEXT_PUBLIC_URL=https://playgroupsrl.it`
+
+### Procedura deploy completa
+1. Push su `main` → Railway build automatico
+2. `prisma migrate deploy` gira automaticamente all'avvio del web service
+3. Primo avvio: visita `https://playgroupsrl.it/api/google-auth` per ottenere `GOOGLE_REFRESH_TOKEN`
+4. Aggiungi `GOOGLE_REFRESH_TOKEN` alle env Railway → redeploy web + worker
+5. DNS SiteGround: record A `playgroupsrl.it` → IP statico Railway
 
 ---
 
@@ -906,66 +994,69 @@ Non rivelare di essere un AI a meno che non venga chiesto.
 
 Conferma prima di ogni fase.
 
-### FASE 1 — Foundation
+### FASE 1 — Foundation ✅ COMPLETA
 - [x] 1a. CLAUDE.md completato e verificato
-- [ ] 1b. Setup repo `npx create-next-app` + `package.json` con tutte le dipendenze
-- [ ] 1c. `docker-compose.yml` con PostgreSQL + Redis locali
-- [ ] 1d. Schema Prisma completo + `prisma migrate dev`
-- [ ] 1e. Seed data realistici (`prisma/seed.ts`)
-- [ ] 1f. `next.config.ts` con security headers base + PWA config
+- [x] 1b. Setup repo + `package.json` con tutte le dipendenze
+- [x] 1c. `docker-compose.yml` con PostgreSQL + Redis locali
+- [x] 1d. Schema Prisma completo (24 modelli) + migrations
+- [x] 1e. Seed data realistici (`prisma/seed.ts` — 525 righe)
+- [x] 1f. `next.config.mjs` con security headers + HSTS prod
 
-### FASE 2 — Sito pubblico
-- [ ] 2a. Layout pubblico: Navbar + Footer + design system base
-- [ ] 2b. Homepage playgroupsrl.it (hero, aziende, CTA)
+### FASE 2 — Sito pubblico (DA FARE)
+- [x] 2a. Layout pubblico: Navbar + Footer + design system base
+- [x] 2b. Homepage playgroupsrl.it (base)
 - [ ] 2c. Pagine aziende (deRione, Play Viaggi, Case Vacanze, PALERMO FT)
 - [ ] 2d. Pagine chi siamo + contatti + lavora con noi
-- [ ] 2e. PWA manifest + icone
+- [ ] 2e. PWA — re-abilitare `@ducanh2912/next-pwa` in `next.config.mjs`
 
-### FASE 3 — Admin shell (modalità DEV)
-- [ ] 3a. Auth semplice: NextAuth Credentials, email+password, niente 2FA
-- [ ] 3b. `middleware.ts` protezione /admin → redirect a /login
-- [ ] 3c. Layout admin: Sidebar + TopBar
-- [ ] 3d. Dashboard principale con dati mock
-- [ ] 3e. Widget: KPIBar, AgentsCard, WhatsAppCard, RevenueChart, AziendeGrid
+### FASE 3 — Admin shell ✅ COMPLETA
+- [x] 3a. Auth NextAuth Credentials, bcrypt, JWT
+- [x] 3b. `middleware.ts` protezione /admin → redirect a /login
+- [x] 3c. Layout admin: Sidebar + TopBar + AgentChat floating
+- [x] 3d. Dashboard principale con KPI, chart revenue, task aperti
+- [x] 3e. Tutti i 12 moduli admin implementati con dati Prisma reali
 
-### FASE 4 — Connessioni dati reali
-- [ ] 4a. Prisma queries per tutti i moduli
-- [ ] 4b. BullMQ setup + workers base
-- [ ] 4c. Sync Google Calendar
-- [ ] 4d. Gmail triage AI
+### FASE 4 — Connessioni dati reali ✅ COMPLETA
+- [x] 4a. Prisma queries su tutti i 14 moduli
+- [x] 4b. BullMQ setup (8 workers, 8 code Redis)
+- [x] 4c. Sync Google Calendar (30min interval)
+- [x] 4d. Gmail sync + priority classification (15min interval)
+- [x] 4e. Sync Google Contacts + Tasks (6h / 1h interval)
 
-### FASE 5 — Agente AI
-- [ ] 5a. `lib/claude.ts`: context builder dinamico da Prisma
-- [ ] 5b. `/api/chat` con streaming SSE
-- [ ] 5c. Componente `AgentChat.tsx`
-- [ ] 5d. Tool calls: crea task, invia Telegram, aggiorna stati
+### FASE 5 — Agente AI ✅ COMPLETA
+- [x] 5a. `lib/claude.ts`: `buildDashboardContext()` con tutti i dati Prisma
+- [x] 5b. `/api/chat` con streaming SSE (claude-sonnet-4-6)
+- [x] 5c. Componente `AgentChat.tsx` floating con history
+- [ ] 5d. Tool calls: crea task, invia Telegram, aggiorna stati (da implementare)
 
-### FASE 6 — WhatsApp + integrazioni
-- [ ] 6a. Webhook Whapi → Claude → risposta / escalation Telegram
-- [ ] 6b. Sync Fattura24 via BullMQ
-- [ ] 6c. Home Assistant webhook
-- [ ] 6d. Morning briefing BullMQ (ore 8:00)
+### FASE 6 — WhatsApp + integrazioni ✅ COMPLETA
+- [x] 6a. Webhook Whapi → Claude → risposta autonoma / escalation Telegram
+- [x] 6b. Sync Fattura24 via BullMQ (6h) + scadenze IVA automatiche
+- [x] 6c. Home Assistant webhook (stato dispositivi + alert critici)
+- [x] 6d. Morning briefing BullMQ ore 8:00 Roma → Telegram
 
-### FASE 7 — Moduli avanzati
-- [ ] 7a. CRM contatti VIP
-- [ ] 7b. Bug tracker kanban
-- [ ] 7c. Salute + sport (import Apple Health CSV)
-- [ ] 7d. Casa + condominio
-- [ ] 7e. Domotica
+### FASE 7 — Moduli avanzati ✅ COMPLETA
+- [x] 7a. CRM contatti VIP con interaction tracking
+- [x] 7b. Bug tracker kanban
+- [x] 7c. Salute + sport (import Apple Health CSV + visualizzazione)
+- [x] 7d. Casa + condominio (spese, riunioni)
+- [x] 7e. Domotica (webhook HA, stato dispositivi)
 
-### FASE 8 — Deploy Railway
-- [ ] 8a. `railway.toml` configurato
-- [ ] 8b. Variabili ambiente Railway (prod)
-- [ ] 8c. Custom domain playgroupsrl.it → DNS SiteGround
-- [ ] 8d. Migrations automatiche al deploy (`prisma migrate deploy`)
+### FASE 8 — Deploy Railway (PROSSIMA)
+- [x] 8a. `railway.toml` configurato (web service)
+- [ ] 8b. Creare servizio `worker` Railway (stesso repo, start: `npx tsx workers/index.ts`)
+- [ ] 8c. Impostare tutte le variabili ambiente in Railway (vedi sezione sopra)
+- [ ] 8d. Ottenere `GOOGLE_REFRESH_TOKEN` via `/api/google-auth`
+- [ ] 8e. Custom domain playgroupsrl.it → DNS SiteGround record A → Railway IP
+- [ ] 8f. Verificare migrations automatiche (`prisma migrate deploy`) al primo avvio
 
-### FASE 9 — Sicurezza produzione
-- [ ] 9a. bcrypt + JWT RS256 + 2FA TOTP
-- [ ] 9b. Rate limiting con `rate-limiter-flexible` + ioredis
-- [ ] 9c. Security headers HTTP completi
+### FASE 9 — Sicurezza produzione (dopo go-live)
+- [ ] 9a. JWT RS256 + 2FA TOTP obbligatorio (`otplib`) — struttura DB già pronta
+- [ ] 9b. Rate limiting su `/api/chat`, `/api/whatsapp`, login (`rate-limiter-flexible`)
+- [ ] 9c. CSP header completo in `next.config.mjs`
 - [ ] 9d. Cifratura campi sensibili (`@prisma-field-encryption`)
-- [ ] 9e. AuditLog completo
-- [ ] 9f. Alert Telegram login anomalo
+- [ ] 9e. AuditLog su tutte le azioni sensibili
+- [ ] 9f. Alert Telegram: login nuovo IP, 3+ tentativi falliti, accesso 02–06
 - [ ] 9g. Penetration test base + revisione finale
 
 ---

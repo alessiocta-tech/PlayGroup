@@ -113,8 +113,8 @@ export async function POST(req: NextRequest) {
         steps,
         calories,
         heartRate,
-        weight: weight !== null ? weight.toFixed(2) as unknown as number : null,
-        sleepHours: sleepHours !== null ? sleepHours.toFixed(2) as unknown as number : null,
+        weight: weight !== null ? weight : null,
+        sleepHours: sleepHours !== null ? sleepHours : null,
         hrv,
       },
     })
