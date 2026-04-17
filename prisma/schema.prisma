@@ -121,6 +121,28 @@ model Company {
   tasks       Task[]
   emails      Email[]
   events      Event[]
+  progetti    Progetto[]
+}
+
+// ─── PROGETTI ────────────────────────────────────────────────────────────────
+
+model Progetto {
+  id          String   @id @default(cuid())
+  nome        String
+  categoria   String   @default("nuovi")   // nuovi | attivi | completati | archiviati
+  companyId   String?
+  azienda     String?                       // nome azienda libero (se non legato a Company)
+  descrizione String?  @db.Text
+  toolUrl     String?                       // path file/tool associato (es. /tools/...)
+  status      String   @default("nuovo")   // nuovo | in_corso | completato | archiviato
+  priorita    String   @default("media")   // urgente | alta | media | bassa
+  tags        String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company? @relation(fields: [companyId], references: [id])
+
+  @@index([categoria, status])
 }
 
 // ─── KPI ─────────────────────────────────────────────────────────────────────

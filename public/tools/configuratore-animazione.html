@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configuratore Cene con Animazione — Derione Talenti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --gold: #F0C040;
+    --dark: #111111;
+    --cream: #EFEFEA;
+    --white: #ffffff;
+    --red: #e74c3c;
+    --green: #27ae60;
+    --border: rgba(0,0,0,0.08);
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--dark); min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--dark); color: white; padding: 28px 40px; display: flex; align-items: center; justify-content: space-between; }
+  .header-left { display: flex; flex-direction: column; gap: 6px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(240,192,64,0.15); border: 1px solid rgba(240,192,64,0.3); color: var(--gold); font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; width: fit-content; }
+  .header h1 { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .header p { color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 2px; }
+  .header-right { text-align: right; }
+  .header-right .version { font-size: 11px; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; }
+  .header-right .date { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+  /* LAYOUT */
+  .main-layout { display: grid; grid-template-columns: 1fr 340px; gap: 0; min-height: calc(100vh - 100px); }
+
+  /* TABS PANEL */
+  .tabs-panel { padding: 32px 40px; }
+  .tabs-nav { display: flex; gap: 4px; margin-bottom: 28px; border-bottom: 2px solid var(--border); }
+  .tab-btn { padding: 10px 20px; font-size: 13px; font-weight: 600; border: none; background: none; cursor: pointer; color: rgba(0,0,0,0.4); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; letter-spacing: 0.02em; }
+  .tab-btn:hover { color: var(--dark); }
+  .tab-btn.active { color: var(--dark); border-bottom-color: var(--gold); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* SECTION TITLES */
+  .section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(0,0,0,0.35); margin-bottom: 16px; margin-top: 28px; }
+  .section-title:first-child { margin-top: 0; }
+
+  /* PRICE GRID */
+  .price-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 8px; }
+  .price-card { background: white; border-radius: 16px; padding: 20px; border: 2px solid transparent; cursor: pointer; transition: all 0.15s; position: relative; }
+  .price-card:hover { border-color: rgba(240,192,64,0.4); }
+  .price-card.selected { border-color: var(--gold); background: #FFFBEF; }
+  .price-card .menu-name { font-size: 14px; font-weight: 700; color: var(--dark); }
+  .price-card .menu-desc { font-size: 11px; color: rgba(0,0,0,0.45); margin-top: 4px; line-height: 1.5; }
+  .price-card .menu-price { font-size: 22px; font-weight: 800; color: var(--dark); margin-top: 12px; }
+  .price-card .menu-price span { font-size: 12px; font-weight: 500; color: rgba(0,0,0,0.4); }
+  .price-card .check { position: absolute; top: 14px; right: 14px; width: 20px; height: 20px; background: var(--gold); border-radius: 50%; display: none; align-items: center; justify-content: center; }
+  .price-card.selected .check { display: flex; }
+  .check svg { width: 10px; height: 10px; stroke: var(--dark); stroke-width: 3; }
+
+  /* EXTRAS */
+  .extras-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .extra-item { background: white; border-radius: 12px; padding: 14px 16px; border: 2px solid transparent; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.15s; }
+  .extra-item:hover { border-color: rgba(240,192,64,0.3); }
+  .extra-item.selected { border-color: var(--gold); background: #FFFBEF; }
+  .extra-item .extra-name { font-size: 13px; font-weight: 600; }
+  .extra-item .extra-price { font-size: 13px; font-weight: 700; color: var(--dark); }
+
+  /* COSTS TABLE */
+  .costs-table { background: white; border-radius: 16px; overflow: hidden; }
+  .costs-table .cost-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .costs-table .cost-row:last-child { border-bottom: none; }
+  .costs-table .cost-row.header-row { background: var(--dark); color: white; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  .costs-table .cost-name { font-size: 13px; font-weight: 500; }
+  .costs-table .cost-sub { font-size: 11px; color: rgba(0,0,0,0.4); margin-top: 2px; }
+  .costs-table .cost-value { font-size: 14px; font-weight: 700; }
+  .cost-input { width: 90px; text-align: right; border: 1.5px solid var(--border); border-radius: 8px; padding: 5px 10px; font-size: 14px; font-weight: 700; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.15s; }
+  .cost-input:focus { border-color: var(--gold); }
+
+  /* ANIMATION PACKAGES */
+  .anim-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .anim-card { background: white; border-radius: 16px; padding: 20px; border: 2px solid transparent; cursor: pointer; transition: all 0.15s; }
+  .anim-card:hover { border-color: rgba(240,192,64,0.4); }
+  .anim-card.selected { border-color: var(--gold); background: #FFFBEF; }
+  .anim-card .anim-name { font-size: 14px; font-weight: 700; }
+  .anim-card .anim-desc { font-size: 12px; color: rgba(0,0,0,0.45); margin-top: 6px; line-height: 1.5; }
+  .anim-card .anim-price { font-size: 20px; font-weight: 800; margin-top: 14px; }
+  .anim-card .anim-tag { display: inline-flex; align-items: center; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; margin-top: 8px; }
+  .tag-serata { background: rgba(240,192,64,0.15); color: #a07c00; }
+  .tag-ora { background: rgba(39,174,96,0.12); color: #1a7a40; }
+  .tag-pacchetto { background: rgba(17,17,17,0.07); color: #444; }
+
+  /* SCENARIOS */
+  .scenario-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .scenario-card { background: white; border-radius: 16px; padding: 22px; border: 1px solid var(--border); }
+  .scenario-card.best { border-color: var(--gold); background: #FFFBEF; }
+  .scenario-card .sc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(0,0,0,0.35); margin-bottom: 8px; }
+  .scenario-card.best .sc-label { color: #a07c00; }
+  .scenario-card .sc-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+  .scenario-card .sc-row { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .scenario-card .sc-row:last-of-type { border-bottom: none; }
+  .scenario-card .sc-row .label { color: rgba(0,0,0,0.5); }
+  .scenario-card .sc-result { margin-top: 14px; padding-top: 14px; border-top: 2px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .scenario-card.best .sc-result { border-top-color: var(--gold); }
+  .scenario-card .sc-margin { font-size: 20px; font-weight: 800; }
+  .scenario-card .sc-margin.positive { color: var(--green); }
+  .scenario-card .sc-margin.negative { color: var(--red); }
+  .scenario-card .sc-pct { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 8px; }
+  .pct-positive { background: rgba(39,174,96,0.12); color: var(--green); }
+  .pct-negative { background: rgba(231,76,60,0.12); color: var(--red); }
+  .breakeven-box { background: var(--dark); color: white; border-radius: 16px; padding: 22px; margin-top: 20px; display: flex; gap: 32px; flex-wrap: wrap; }
+  .be-item { display: flex; flex-direction: column; gap: 4px; }
+  .be-label { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 500; letter-spacing: 0.08em; }
+  .be-value { font-size: 22px; font-weight: 800; color: var(--gold); }
+  .be-sub { font-size: 11px; color: rgba(255,255,255,0.35); }
+
+  /* SIDEBAR */
+  .sidebar { background: var(--dark); color: white; padding: 32px 28px; position: sticky; top: 0; height: fit-content; min-height: calc(100vh - 100px); display: flex; flex-direction: column; }
+  .sidebar-title { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 20px; }
+
+  /* SLIDERS */
+  .slider-group { margin-bottom: 22px; }
+  .slider-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .slider-label .label-text { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.7); }
+  .slider-label .label-value { font-size: 16px; font-weight: 800; color: var(--gold); }
+  .slider-label .label-unit { font-size: 11px; color: rgba(255,255,255,0.4); margin-left: 2px; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.12); border-radius: 2px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); cursor: pointer; border: 3px solid var(--dark); box-shadow: 0 0 0 2px rgba(240,192,64,0.4); }
+  input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--gold); cursor: pointer; border: 3px solid var(--dark); }
+
+  /* RESULT CARD */
+  .result-card { background: white; border-radius: 16px; padding: 22px; margin-top: auto; color: var(--dark); }
+  .result-title { font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(0,0,0,0.35); margin-bottom: 16px; }
+  .result-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; }
+  .result-row .r-label { font-size: 12px; color: rgba(0,0,0,0.5); font-weight: 500; }
+  .result-row .r-value { font-size: 14px; font-weight: 700; }
+  .result-divider { height: 1px; background: var(--border); margin: 8px 0; }
+  .result-big { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 14px; padding-top: 14px; border-top: 2px solid var(--border); }
+  .result-big .big-label { font-size: 12px; font-weight: 600; color: rgba(0,0,0,0.5); }
+  .result-big .big-value { font-size: 28px; font-weight: 800; }
+  .result-big .big-value.positive { color: var(--green); }
+  .result-big .big-value.negative { color: var(--red); }
+  .result-big .big-value.neutral { color: var(--dark); }
+  .margin-pct { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; margin-top: 4px; }
+  .sidebar-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 20px 0; }
+
+  /* TOGGLE */
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .toggle-label { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.7); }
+  .toggle { position: relative; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: rgba(255,255,255,0.15); border-radius: 11px; cursor: pointer; transition: background 0.2s; }
+  .toggle-slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: transform 0.2s; }
+  .toggle input:checked + .toggle-slider { background: var(--gold); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(18px); background: var(--dark); }
+
+  /* NOTES */
+  .note { background: rgba(240,192,64,0.08); border: 1px solid rgba(240,192,64,0.2); border-radius: 10px; padding: 12px 14px; font-size: 12px; color: rgba(0,0,0,0.6); line-height: 1.5; margin-top: 10px; }
+  .note strong { color: var(--dark); }
+
+  @media (max-width: 900px) {
+    .main-layout { grid-template-columns: 1fr; }
+    .sidebar { min-height: auto; position: static; }
+    .tabs-panel { padding: 24px 20px; }
+    .header { padding: 20px; flex-direction: column; gap: 12px; text-align: center; }
+    .price-grid { grid-template-columns: 1fr; }
+    .scenario-grid { grid-template-columns: 1fr; }
+    .anim-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="badge">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      Derione Talenti · Centro Commerciale
+    </div>
+    <h1>Cene con Animazione</h1>
+    <p>Configuratore prezzi & margini — uso interno</p>
+  </div>
+  <div class="header-right">
+    <div class="version">v1.2 · aprile 2026</div>
+    <div class="date" id="todayDate"></div>
+  </div>
+</div>
+
+<div class="main-layout">
+
+  <!-- TABS PANEL -->
+  <div class="tabs-panel">
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchTab('menu')">Menù & prezzi</button>
+      <button class="tab-btn" onclick="switchTab('costi')">Costi fissi</button>
+      <button class="tab-btn" onclick="switchTab('animazione')">Animazione</button>
+      <button class="tab-btn" onclick="switchTab('scenari')">Scenari</button>
+    </div>
+
+    <!-- TAB: MENU -->
+    <div id="tab-menu" class="tab-content active">
+      <div class="section-title">Scegli il menù base</div>
+      <div class="price-grid">
+        <div class="price-card selected" data-menu="bimbi" onclick="selectMenu(this)">
+          <div class="check"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="menu-name">🧒 Bimbi</div>
+          <div class="menu-desc">Primo, secondo, contorno, bibita, gelato</div>
+          <div class="menu-price">€ 14,00 <span>/ copertura</span></div>
+        </div>
+        <div class="price-card" data-menu="famiglia" onclick="selectMenu(this)">
+          <div class="check"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="menu-name">👨‍👩‍👧 Famiglia</div>
+          <div class="menu-desc">Antipasto, primo, secondo, dolce, acqua</div>
+          <div class="menu-price">€ 22,00 <span>/ copertura</span></div>
+        </div>
+        <div class="price-card" data-menu="premium" onclick="selectMenu(this)">
+          <div class="check"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="menu-name">⭐ Premium</div>
+          <div class="menu-desc">Antipasto buffet, 2 primi, secondo, dolce, bevande incluse</div>
+          <div class="menu-price">€ 32,00 <span>/ copertura</span></div>
+        </div>
+      </div>
+
+      <div class="section-title">Extra a persona (opzionali)</div>
+      <div class="extras-grid">
+        <div class="extra-item" data-extra="cocktail" data-price="4.00" onclick="toggleExtra(this)">
+          <span class="extra-name">🍹 Cocktail benvenuto</span>
+          <span class="extra-price">+ €4,00</span>
+        </div>
+        <div class="extra-item" data-extra="torta" data-price="3.50" onclick="toggleExtra(this)">
+          <span class="extra-name">🎂 Torta personalizzata</span>
+          <span class="extra-price">+ €3,50</span>
+        </div>
+        <div class="extra-item" data-extra="palloncini" data-price="2.00" onclick="toggleExtra(this)">
+          <span class="extra-name">🎈 Kit palloncini tavolo</span>
+          <span class="extra-price">+ €2,00</span>
+        </div>
+        <div class="extra-item" data-extra="foto" data-price="5.00" onclick="toggleExtra(this)">
+          <span class="extra-name">📸 Servizio fotografico</span>
+          <span class="extra-price">+ €5,00</span>
+        </div>
+      </div>
+
+      <div class="section-title">Costo cibo (food cost interno)</div>
+      <div class="costs-table">
+        <div class="cost-row header-row">
+          <span>Voce</span>
+          <span>Costo stimato</span>
+        </div>
+        <div class="cost-row">
+          <div><div class="cost-name">Food cost % bimbi</div><div class="cost-sub">% del prezzo vendita</div></div>
+          <div><input class="cost-input" id="fc-bimbi" type="number" value="38" min="1" max="80" step="1" oninput="calc()"> %</div>
+        </div>
+        <div class="cost-row">
+          <div><div class="cost-name">Food cost % famiglia</div><div class="cost-sub">% del prezzo vendita</div></div>
+          <div><input class="cost-input" id="fc-famiglia" type="number" value="35" min="1" max="80" step="1" oninput="calc()"> %</div>
+        </div>
+        <div class="cost-row">
+          <div><div class="cost-name">Food cost % premium</div><div class="cost-sub">% del prezzo vendita</div></div>
+          <div><input class="cost-input" id="fc-premium" type="number" value="33" min="1" max="80" step="1" oninput="calc()"> %</div>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>Nota:</strong> Il prezzo vendita include il coperto (€ 2,00 già incluso nel menù). Bevande alcoliche non incluse nel menù famiglia/premium — vendita separata.
+      </div>
+    </div>
+
+    <!-- TAB: COSTI FISSI -->
+    <div id="tab-costi" class="tab-content">
+      <div class="section-title">Costi fissi per serata</div>
+      <div class="costs-table">
+        <div class="cost-row header-row">
+          <span>Voce di costo</span>
+          <span>Importo (€)</span>
+        </div>
+        <div class="cost-row">
+          <div><div class="cost-name">Personale sala</div><div class="cost-sub">2 camerieri × 4h (stimato)</div></div>
+          <input class="cost-input" id="cost-sala" type="number" value="120" min="0" step="5" oninput="calc()">
+        </div>
+        <div class="cost-row">
+          <div><div class="cost-name">Personale cucina (extra)</div><div class="cost-sub">Cuoco extra o straordinari</div></div>
+          <input class="cost-input" id="cost-cucina" type="number" value="80" min="0" step="5" oninput="calc()">
+        </div>
+        <div class="cost-row">
+          <div><div class="cost-name">Materiali allestimento</div><div class="cost-sub">Tovaglie speciali, decorazioni</div></div>
+          <input class="cost-input" id="cost-allestimento" type="number" value="40" min="0" step="5" oninput="calc()">
+        </div>
+        <div class="cost-row">
+          <div><div class="cost-name">Marketing / pubblicità</div><div class="cost-sub">Social, volantini, portali</div></div>
+          <input class="cost-input" id="cost-marketing" type="number" value="30" min="0" step="5" oninput="calc()">
+        </div>
+        <div class="cost-row">
+          <div><div class="cost-name">Costi generali (quota)</div><div class="cost-sub">Utenze, affitto, ammortamento</div></div>
+          <input class="cost-input" id="cost-generali" type="number" value="60" min="0" step="5" oninput="calc()">
+        </div>
+        <div class="cost-row" style="font-weight:700; background:#FFFBEF;">
+          <div><div class="cost-name">Totale costi fissi</div></div>
+          <div class="cost-value" id="total-fixed">€ 330,00</div>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:24px;">Incasso bevande (stima)</div>
+      <div class="costs-table">
+        <div class="cost-row">
+          <div><div class="cost-name">Bevande aggiuntive p.p.</div><div class="cost-sub">Vino, birra, analcolici extra</div></div>
+          <input class="cost-input" id="bev-pp" type="number" value="6" min="0" step="0.5" oninput="calc()">
+        </div>
+        <div class="cost-row">
+          <div><div class="cost-name">Food cost bevande</div><div class="cost-sub">% sul prezzo bevande</div></div>
+          <div><input class="cost-input" id="fc-bev" type="number" value="25" min="1" max="80" step="1" oninput="calc()"> %</div>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:16px;">
+        <strong>Tip:</strong> Per serata 60–80 coperti considera +1 cameriere extra (€ 60). Verifica turni con Andrea prima di confermare date.
+      </div>
+    </div>
+
+    <!-- TAB: ANIMAZIONE -->
+    <div id="tab-animazione" class="tab-content">
+      <div class="section-title">Pacchetto animazione</div>
+      <div class="anim-grid">
+        <div class="anim-card selected" data-anim="base" onclick="selectAnim(this)">
+          <div class="check"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="anim-name">🎪 Base</div>
+          <div class="anim-desc">1 animatore, 2 ore, giochi di gruppo, laboratorio creativo base, gadget per i bimbi</div>
+          <div class="anim-price">€ 180,00</div>
+          <div class="anim-tag tag-serata">flat serata</div>
+        </div>
+        <div class="anim-card" data-anim="standard" onclick="selectAnim(this)">
+          <div class="check"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="anim-name">🎭 Standard</div>
+          <div class="anim-desc">2 animatori, 3 ore, spettacolo magic show, face painting, laboratorio e giochi a tema</div>
+          <div class="anim-price">€ 320,00</div>
+          <div class="anim-tag tag-serata">flat serata</div>
+        </div>
+        <div class="anim-card" data-anim="premium" onclick="selectAnim(this)">
+          <div class="check"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="anim-name">⭐ Premium</div>
+          <div class="anim-desc">2 animatori + personaggio in costume, 4 ore, show completo, foto con personaggio, allestimento tematico</div>
+          <div class="anim-price">€ 520,00</div>
+          <div class="anim-tag tag-pacchetto">pacchetto completo</div>
+        </div>
+        <div class="anim-card" data-anim="custom" onclick="selectAnim(this)">
+          <div class="check"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="anim-name">🎯 Custom (a ore)</div>
+          <div class="anim-desc">Animatore/i per ore aggiuntive o evento su misura. Inserisci costo manuale nella sidebar.</div>
+          <div class="anim-price" id="anim-custom-price">€ —</div>
+          <div class="anim-tag tag-ora">costo custom</div>
+        </div>
+      </div>
+
+      <div class="section-title">Costo animazione custom</div>
+      <div class="costs-table">
+        <div class="cost-row">
+          <div><div class="cost-name">Costo animazione custom (€)</div><div class="cost-sub">Solo se hai selezionato "Custom"</div></div>
+          <input class="cost-input" id="anim-custom-input" type="number" value="0" min="0" step="10" oninput="calc()">
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:24px;">Quota animazione per coperto</div>
+      <div class="costs-table">
+        <div class="cost-row">
+          <div><div class="cost-name">Includi costo animazione nel prezzo?</div><div class="cost-sub">Aggiunge quota p.p. al prezzo vendita consigliato</div></div>
+          <label class="toggle">
+            <input type="checkbox" id="toggle-anim-quota" checked onchange="calc()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="cost-row">
+          <div><div class="cost-name">Supplemento animazione p.p.</div><div class="cost-sub">Aggiunta esplicita al menù (es. "serata animata +€X")</div></div>
+          <div><input class="cost-input" id="suppl-anim" type="number" value="5" min="0" step="0.5" oninput="calc()"> €</div>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>Fornitore attuale:</strong> Animazione Talenti (Claudia). Contratto serata, pagamento a fine evento. Tel: <a href="tel:+39">da inserire</a>. Alternativa: Spettacolo & Fantasia.
+      </div>
+    </div>
+
+    <!-- TAB: SCENARI -->
+    <div id="tab-scenari" class="tab-content">
+      <div class="section-title">Simulazione per 3 scenari</div>
+      <div id="scenario-grid" class="scenario-grid"></div>
+      <div id="breakeven-box" class="breakeven-box"></div>
+
+      <div class="section-title" style="margin-top:28px;">Note operative</div>
+      <div class="note">
+        <strong>Capienza sala Talenti:</strong> max 90 coperti (70 ottimale). Prenotazione minima consigliata: 30 coperti per serata animata.<br><br>
+        <strong>Frequenza consigliata:</strong> 2–3 serate/mese (venerdì o sabato sera). Periodo peak: ottobre–marzo.<br><br>
+        <strong>Prezzo minimo consigliato:</strong> non scendere sotto il punto di break-even + 15% di margine minimo operativo.
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">Configuratore</div>
+
+    <!-- SLIDERS -->
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="label-text">Coperti previsti</span>
+        <span><span class="label-value" id="val-coperti">50</span><span class="label-unit"> pers.</span></span>
+      </div>
+      <input type="range" id="sl-coperti" min="10" max="90" step="1" value="50" oninput="updateSlider('coperti',this.value);calc()">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="label-text">% bimbi sul totale</span>
+        <span><span class="label-value" id="val-pct-bimbi">40</span><span class="label-unit"> %</span></span>
+      </div>
+      <input type="range" id="sl-pct-bimbi" min="0" max="100" step="5" value="40" oninput="updateSlider('pct-bimbi',this.value);calc()">
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-title">Prezzo vendita consigliato</div>
+
+    <div style="background:rgba(240,192,64,0.1); border:1px solid rgba(240,192,64,0.2); border-radius:12px; padding:14px 16px; margin-bottom:20px;">
+      <div style="font-size:11px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px;">Prezzo consigliato p.p.</div>
+      <div style="font-size:32px; font-weight:800; color:var(--gold);" id="prezzo-consigliato">€ 27,00</div>
+      <div style="font-size:11px; color:rgba(255,255,255,0.35); margin-top:4px;" id="prezzo-breakdown">menù + animazione inclusa</div>
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">Arrotonda al .00</span>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-round" checked onchange="calc()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- RESULT CARD -->
+    <div class="result-card">
+      <div class="result-title">Risultato serata</div>
+      <div class="result-row">
+        <span class="r-label">Ricavi totali</span>
+        <span class="r-value" id="res-ricavi">—</span>
+      </div>
+      <div class="result-row">
+        <span class="r-label">Food cost</span>
+        <span class="r-value" id="res-foodcost">—</span>
+      </div>
+      <div class="result-row">
+        <span class="r-label">Animazione</span>
+        <span class="r-value" id="res-animazione">—</span>
+      </div>
+      <div class="result-row">
+        <span class="r-label">Costi fissi</span>
+        <span class="r-value" id="res-fissi">—</span>
+      </div>
+      <div class="result-divider"></div>
+      <div class="result-row">
+        <span class="r-label">Costi totali</span>
+        <span class="r-value" id="res-tot-costi">—</span>
+      </div>
+      <div class="result-big">
+        <div>
+          <div class="big-label">Margine netto</div>
+          <div class="margin-pct" id="res-pct-badge">—</div>
+        </div>
+        <div class="big-value" id="res-margine">—</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  const state = {
+    menu: 'bimbi',
+    anim: 'base',
+    extras: new Set(),
+  }
+
+  const menuPrices  = { bimbi: 14, famiglia: 22, premium: 32 }
+  const menuFC      = { bimbi: () => parseFloat(document.getElementById('fc-bimbi').value)/100,
+                        famiglia: () => parseFloat(document.getElementById('fc-famiglia').value)/100,
+                        premium: () => parseFloat(document.getElementById('fc-premium').value)/100 }
+  const animPrices  = { base: 180, standard: 320, premium: 520 }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function fmt(n) { return '€ ' + n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') }
+  function fmtShort(n) { return '€ ' + Math.round(n).toLocaleString('it-IT') }
+
+  function updateSlider(id, val) {
+    document.getElementById('val-' + id).textContent = val
+  }
+
+  // ── Tab switch ─────────────────────────────────────────────────────────────
+  function switchTab(name) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'))
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+    document.getElementById('tab-' + name).classList.add('active')
+    event.target.classList.add('active')
+    if (name === 'scenari') renderScenari()
+  }
+
+  // ── Select menu ───────────────────────────────────────────────────────────
+  function selectMenu(el) {
+    document.querySelectorAll('.price-card').forEach(c => c.classList.remove('selected'))
+    el.classList.add('selected')
+    state.menu = el.dataset.menu
+    calc()
+  }
+
+  // ── Toggle extra ──────────────────────────────────────────────────────────
+  function toggleExtra(el) {
+    el.classList.toggle('selected')
+    const k = el.dataset.extra
+    state.extras.has(k) ? state.extras.delete(k) : state.extras.add(k)
+    calc()
+  }
+
+  // ── Select anim ───────────────────────────────────────────────────────────
+  function selectAnim(el) {
+    document.querySelectorAll('.anim-card').forEach(c => c.classList.remove('selected'))
+    el.classList.add('selected')
+    state.anim = el.dataset.anim
+    calc()
+  }
+
+  // ── Main calc ──────────────────────────────────────────────────────────────
+  function calc() {
+    const coperti    = parseInt(document.getElementById('sl-coperti').value)
+    const pctBimbi   = parseInt(document.getElementById('sl-pct-bimbi').value) / 100
+    const copBimbi   = Math.round(coperti * pctBimbi)
+    const copAdulti  = coperti - copBimbi
+
+    // Menu base price
+    const menuPrice  = menuPrices[state.menu]
+    const fc         = menuFC[state.menu]()
+
+    // Extras
+    let extraPP = 0
+    state.extras.forEach(k => {
+      const el = document.querySelector(`[data-extra="${k}"]`)
+      if (el) extraPP += parseFloat(el.dataset.price)
+    })
+
+    // Animation cost
+    let animCost = 0
+    if (state.anim === 'custom') {
+      animCost = parseFloat(document.getElementById('anim-custom-input').value) || 0
+    } else {
+      animCost = animPrices[state.anim] || 0
+    }
+
+    // Animation quota per person
+    const inclAnimQuota = document.getElementById('toggle-anim-quota').checked
+    const supplAnim     = inclAnimQuota ? parseFloat(document.getElementById('suppl-anim').value) : 0
+
+    // Beverages
+    const bevPP  = parseFloat(document.getElementById('bev-pp').value)
+    const fcBev  = parseFloat(document.getElementById('fc-bev').value) / 100
+
+    // Fixed costs
+    const fixedCosts = ['sala', 'cucina', 'allestimento', 'marketing', 'generali']
+      .reduce((sum, k) => sum + (parseFloat(document.getElementById('cost-' + k).value) || 0), 0)
+
+    document.getElementById('total-fixed').textContent = fmt(fixedCosts)
+
+    // Recommended price
+    const animQuotaCalc = inclAnimQuota ? (animCost / Math.max(coperti, 1)) : 0
+    let recPrice = menuPrice + extraPP + supplAnim
+    if (document.getElementById('toggle-round').checked) recPrice = Math.ceil(recPrice)
+
+    document.getElementById('prezzo-consigliato').textContent = fmt(recPrice)
+    document.getElementById('prezzo-breakdown').textContent =
+      `menù ${fmt(menuPrice)}` + (extraPP > 0 ? ` + extra ${fmt(extraPP)}` : '') +
+      (supplAnim > 0 ? ` + anim. ${fmt(supplAnim)}` : '')
+
+    // Revenue
+    const ricaviMenu = coperti * recPrice
+    const ricaviBev  = coperti * bevPP
+    const ricaviTot  = ricaviMenu + ricaviBev
+
+    // Costs
+    const foodCostMenu = coperti * menuPrice * fc
+    const foodCostBev  = ricaviBev * fcBev
+    const totFoodCost  = foodCostMenu + foodCostBev
+
+    const totCosti = totFoodCost + animCost + fixedCosts
+    const margine  = ricaviTot - totCosti
+    const margPct  = ricaviTot > 0 ? (margine / ricaviTot) * 100 : 0
+
+    // Update result card
+    document.getElementById('res-ricavi').textContent      = fmt(ricaviTot)
+    document.getElementById('res-foodcost').textContent    = '−' + fmt(totFoodCost)
+    document.getElementById('res-animazione').textContent  = '−' + fmt(animCost)
+    document.getElementById('res-fissi').textContent       = '−' + fmt(fixedCosts)
+    document.getElementById('res-tot-costi').textContent   = fmt(totCosti)
+
+    const el = document.getElementById('res-margine')
+    el.textContent = fmt(margine)
+    el.className   = 'big-value ' + (margine >= 0 ? 'positive' : 'negative')
+
+    const badge = document.getElementById('res-pct-badge')
+    badge.textContent = margPct.toFixed(1) + '%'
+    badge.className   = 'margin-pct ' + (margPct >= 20 ? 'pct-positive' : 'pct-negative')
+  }
+
+  // ── Render Scenari ─────────────────────────────────────────────────────────
+  function renderScenari() {
+    const scenarios = [
+      { label: 'Pessimistico', title: '🔴 30 coperti', coperti: 30 },
+      { label: 'Base atteso',  title: '🟡 50 coperti', coperti: 50 },
+      { label: 'Ottimistico',  title: '🟢 75 coperti', coperti: 75 },
+    ]
+
+    const menu     = state.menu
+    const menuP    = menuPrices[menu]
+    const fc       = menuFC[menu]()
+    const pctBimbi = parseInt(document.getElementById('sl-pct-bimbi').value) / 100
+
+    let animCost = 0
+    if (state.anim === 'custom') {
+      animCost = parseFloat(document.getElementById('anim-custom-input').value) || 0
+    } else {
+      animCost = animPrices[state.anim] || 0
+    }
+
+    let extraPP = 0
+    state.extras.forEach(k => {
+      const el = document.querySelector(`[data-extra="${k}"]`)
+      if (el) extraPP += parseFloat(el.dataset.price)
+    })
+
+    const supplAnim  = document.getElementById('toggle-anim-quota').checked
+                       ? parseFloat(document.getElementById('suppl-anim').value) : 0
+    const bevPP      = parseFloat(document.getElementById('bev-pp').value)
+    const fcBev      = parseFloat(document.getElementById('fc-bev').value) / 100
+    const fixedCosts = ['sala', 'cucina', 'allestimento', 'marketing', 'generali']
+      .reduce((sum, k) => sum + (parseFloat(document.getElementById('cost-' + k).value) || 0), 0)
+
+    let recPrice = menuP + extraPP + supplAnim
+    if (document.getElementById('toggle-round').checked) recPrice = Math.ceil(recPrice)
+
+    let bestIdx = 0, bestMargin = -Infinity
+
+    const cards = scenarios.map((sc, i) => {
+      const ricaviMenu = sc.coperti * recPrice
+      const ricaviBev  = sc.coperti * bevPP
+      const ricaviTot  = ricaviMenu + ricaviBev
+      const totFoodCost = sc.coperti * menuP * fc + ricaviBev * fcBev
+      const totCosti   = totFoodCost + animCost + fixedCosts
+      const margine    = ricaviTot - totCosti
+      const pct        = ricaviTot > 0 ? (margine / ricaviTot * 100) : 0
+      if (margine > bestMargin) { bestMargin = margine; bestIdx = i }
+
+      return { sc, ricaviTot, totFoodCost, animCost, fixedCosts, totCosti, margine, pct }
+    })
+
+    const grid = document.getElementById('scenario-grid')
+    grid.innerHTML = cards.map((c, i) => `
+      <div class="scenario-card ${i === bestIdx ? 'best' : ''}">
+        <div class="sc-label">${i === bestIdx ? '★ SCENARIO MIGLIORE' : c.sc.label}</div>
+        <div class="sc-title">${c.sc.title}</div>
+        <div class="sc-row"><span class="label">Ricavi totali</span><span>${fmtShort(c.ricaviTot)}</span></div>
+        <div class="sc-row"><span class="label">Food cost</span><span>−${fmtShort(c.totFoodCost)}</span></div>
+        <div class="sc-row"><span class="label">Animazione</span><span>−${fmtShort(c.animCost)}</span></div>
+        <div class="sc-row"><span class="label">Costi fissi</span><span>−${fmtShort(c.fixedCosts)}</span></div>
+        <div class="sc-result">
+          <div>
+            <div style="font-size:11px;color:rgba(0,0,0,0.4);">Margine netto</div>
+            <span class="sc-pct ${c.pct >= 20 ? 'pct-positive' : 'pct-negative'}">${c.pct.toFixed(1)}%</span>
+          </div>
+          <div class="sc-margin ${c.margine >= 0 ? 'positive' : 'negative'}">${fmt(c.margine)}</div>
+        </div>
+      </div>
+    `).join('')
+
+    // Breakeven
+    const beCopeComm = (animCost + fixedCosts) / Math.max(recPrice - menuP * fc - bevPP * fcBev, 0.01)
+    const beMensile3 = Math.ceil(beCopeComm / 3)
+
+    document.getElementById('breakeven-box').innerHTML = `
+      <div class="be-item">
+        <div class="be-label">Break-even coperti</div>
+        <div class="be-value">${Math.ceil(beCopeComm)}</div>
+        <div class="be-sub">coperti per serata</div>
+      </div>
+      <div class="be-item">
+        <div class="be-label">Break-even mensile</div>
+        <div class="be-value">${beMensile3}</div>
+        <div class="be-sub">serate/mese (min 3x)</div>
+      </div>
+      <div class="be-item">
+        <div class="be-label">Prezzo vendita</div>
+        <div class="be-value">${fmt(recPrice)}</div>
+        <div class="be-sub">p.p. configurato</div>
+      </div>
+      <div class="be-item">
+        <div class="be-label">Animazione</div>
+        <div class="be-value">${fmtShort(animCost)}</div>
+        <div class="be-sub">costo fisso serata</div>
+      </div>
+    `
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  document.getElementById('todayDate').textContent =
+    new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
+
+  calc()
+</script>
+</body>
+</html>
