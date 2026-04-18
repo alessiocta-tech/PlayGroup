@@ -10,8 +10,11 @@ export default function HomePage() {
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
       <section className="relative min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center overflow-hidden">
 
-        {/* ASCII canvas background */}
+        {/* Code rain canvas background */}
         <AsciiHero />
+
+        {/* Radial vignette so text stays readable */}
+        <div className="absolute inset-0 z-[1]" style={{ background: 'radial-gradient(ellipse 60% 55% at 50% 50%, transparent 0%, rgba(13,13,13,0.72) 100%)' }} />
 
         {/* Overlay content */}
         <div className="relative z-10 text-center px-6 max-w-2xl mx-auto pointer-events-none select-none">

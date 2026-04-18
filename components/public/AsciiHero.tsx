@@ -2,154 +2,134 @@
 
 import { useEffect, useRef } from 'react'
 
-// Characters from sparse (dark) → dense (bright)
-const RAMP = ' ·.:;/|+?*xX$#@'
-// Scramble pool — "bits" effect like good-fella.com
-const SCRAMBLE = '01アイウエオ@#$%&*+=!?|[]{}ABCDEFabcdef<>/\\'
+// Programming characters pool
+const CHARS = '01アイウエオカキクケコ{}[]()<>/\\|;:.,!?@#$%&*+=~^`"\' ABCDEFabcdef0123456789'
+const KEYWORDS = ['const', 'let', 'var', 'fn', '=>', 'if', 'for', 'return', 'class', 'async', 'await', 'null', 'true', 'false', '===', '!==', '+=', '-=', '&&', '||']
 
-const MOUSE_RADIUS = 110  // px
-const SCRAMBLE_SPEED = 0.06  // decay per frame
+const GOLD   = [240, 192,  64]   // #F0C040
+const BRIGHT = [255, 240, 140]   // bright flash
+const DIM    = [160, 120,  20]   // trail
 
-function rchar(pool: string) {
-  return pool[Math.floor(Math.random() * pool.length)]
+const COL_W  = 16   // px per column
+const SPEED_MIN = 0.4
+const SPEED_MAX = 1.4
+
+interface Drop {
+  y:       number   // current y position (in rows)
+  speed:   number   // rows per frame
+  len:     number   // trail length
+  chars:   string[] // current chars in this column
+  bright:  number   // head brightness (0..1, decays)
+  keyword: string | null
+  kwTimer: number
+}
+
+function rchar() {
+  return CHARS[Math.floor(Math.random() * CHARS.length)]
+}
+
+function rkeyword() {
+  return KEYWORDS[Math.floor(Math.random() * KEYWORDS.length)]
 }
 
 export default function AsciiHero() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef    = useRef<number>()
-  const mouseRef  = useRef({ x: -9999, y: -9999 })
-  const stateRef  = useRef<{
-    cols: number; rows: number; cw: number; rh: number
-    src:  number[][]   // brightness 0..1 per cell
-    scr:  number[][]   // scramble intensity 0..1 per cell
-  } | null>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current!
-    const ctx = canvas.getContext('2d')!
+    const ctx    = canvas.getContext('2d')!
 
-    // ── helpers ────────────────────────────────────────────────────────────
-    function buildSource() {
-      const { cols, rows, cw, rh } = stateRef.current!
-      const W = canvas.width, H = canvas.height
+    let cols  = 0
+    let rows  = 0
+    let drops: Drop[] = []
 
-      const off = document.createElement('canvas')
-      off.width = W; off.height = H
-      const o = off.getContext('2d')!
-      o.fillStyle = '#000'
-      o.fillRect(0, 0, W, H)
-      o.fillStyle = '#fff'
-      o.textAlign = 'center'
-      o.textBaseline = 'middle'
-
-      // Render large "PLAY" + "GROUP" → source image
-      const bigSize = Math.floor(H * 0.28)
-      o.font = `900 ${bigSize}px 'DM Sans', sans-serif`
-      o.fillText('PLAY', W / 2, H * 0.35)
-      o.font = `900 ${Math.floor(bigSize * 0.88)}px 'DM Sans', sans-serif`
-      o.fillText('GROUP', W / 2, H * 0.67)
-
-      const img = o.getImageData(0, 0, W, H)
-      const src: number[][] = []
-      for (let r = 0; r < rows; r++) {
-        src[r] = []
-        for (let c = 0; c < cols; c++) {
-          const px = Math.floor(c * cw + cw * 0.5)
-          const py = Math.floor(r * rh + rh * 0.5)
-          const i = (py * W + px) * 4
-          src[r][c] = img.data[i] / 255
-        }
+    function initDrop(col: number): Drop {
+      const len = 8 + Math.floor(Math.random() * 20)
+      return {
+        y:       -Math.random() * rows,
+        speed:   SPEED_MIN + Math.random() * (SPEED_MAX - SPEED_MIN),
+        len,
+        chars:   Array.from({ length: len }, rchar),
+        bright:  0,
+        keyword: null,
+        kwTimer: 0,
       }
-      stateRef.current!.src = src
-      stateRef.current!.scr = src.map(row => row.map(() => 0))
     }
 
     function resize() {
       canvas.width  = window.innerWidth
       canvas.height = window.innerHeight
-      ctx.font = `${14}px monospace`
-      const cw = ctx.measureText('M').width
-      const rh = 14 * 1.25
-      stateRef.current = {
-        cols: Math.ceil(canvas.width  / cw),
-        rows: Math.ceil(canvas.height / rh),
-        cw, rh, src: [], scr: [],
-      }
-      // Wait for fonts before sampling
-      document.fonts.ready.then(buildSource)
+      cols  = Math.ceil(canvas.width  / COL_W)
+      rows  = Math.ceil(canvas.height / COL_W)
+      drops = Array.from({ length: cols }, (_, i) => initDrop(i))
     }
 
-    // ── events ─────────────────────────────────────────────────────────────
-    function onMove(e: MouseEvent | TouchEvent) {
-      const x = 'touches' in e ? e.touches[0].clientX : e.clientX
-      const y = 'touches' in e ? e.touches[0].clientY : e.clientY
-      mouseRef.current = { x, y }
-
-      const s = stateRef.current
-      if (!s || !s.scr.length) return
-      const { cols, rows, cw, rh, scr } = s
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const dist = Math.hypot(c * cw + cw / 2 - x, r * rh + rh / 2 - y)
-          if (dist < MOUSE_RADIUS) {
-            scr[r][c] = Math.max(scr[r][c], 1 - dist / MOUSE_RADIUS)
-          }
-        }
-      }
-    }
-
-    // ── render loop ────────────────────────────────────────────────────────
     let frame = 0
     function draw() {
-      const s = stateRef.current
-      if (!s || !s.src.length) { rafRef.current = requestAnimationFrame(draw); return }
+      // Fade previous frame
+      ctx.fillStyle = 'rgba(13,13,13,0.18)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      const { cols, rows, cw, rh, src, scr } = s
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      ctx.font = `${14}px monospace`
+      ctx.font = `${COL_W - 2}px monospace`
+      ctx.textAlign = 'center'
       ctx.textBaseline = 'top'
 
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const brightness = src[r]?.[c] ?? 0
-          const scramble   = scr[r]?.[c] ?? 0
+      for (let c = 0; c < drops.length; c++) {
+        const d = drops[c]
+        const x = c * COL_W + COL_W / 2
 
-          let ch: string
-          let alpha: number
-          let color: string
+        // Occasionally inject a keyword
+        if (d.kwTimer <= 0 && Math.random() < 0.003) {
+          d.keyword = rkeyword()
+          d.kwTimer = d.keyword.length
+        }
 
-          if (scramble > 0.04) {
-            // ── scrambling: yellow bits ─────────────────────────────────
-            ch    = rchar(SCRAMBLE)
-            alpha = 0.25 + scramble * 0.75
-            color = `rgba(240,192,64,${alpha.toFixed(2)})`
-            scr[r][c] = Math.max(0, scramble - SCRAMBLE_SPEED)
-          } else if (brightness > 0.55) {
-            // ── bright area (inside letters): white ─────────────────────
-            const idx = Math.min(RAMP.length - 1, Math.floor(brightness * RAMP.length))
-            ch    = RAMP[idx]
-            alpha = 0.3 + brightness * 0.65
-            color = `rgba(255,255,255,${alpha.toFixed(2)})`
-          } else if (brightness > 0.08) {
-            // ── edge/mid: dimmer ────────────────────────────────────────
-            const idx = Math.floor(brightness * RAMP.length * 0.7)
-            ch    = RAMP[Math.max(0, idx)]
-            alpha = brightness * 0.45
-            color = `rgba(180,180,180,${alpha.toFixed(2)})`
+        // Draw trail (head → tail)
+        for (let t = 0; t < d.len; t++) {
+          const row = Math.floor(d.y) - t
+          if (row < 0 || row >= rows) continue
+
+          const py = row * COL_W
+
+          // Mutate chars randomly
+          if (Math.random() < 0.06) d.chars[t] = rchar()
+
+          let ch = d.chars[t]
+          let r: number, g: number, b: number, a: number
+
+          if (t === 0) {
+            // Head — bright flash
+            ;[r, g, b] = BRIGHT
+            a = 0.95
           } else {
-            // ── background: sparse, very dim, occasional flicker ────────
-            if (frame % 4 === (c % 4) && Math.random() > 0.985) {
-              ch    = rchar('·.01')
-              color = 'rgba(100,100,100,0.12)'
-            } else {
-              ch    = Math.random() > 0.93 ? rchar('·. ') : ' '
-              color = 'rgba(80,80,80,0.07)'
-            }
+            // Trail — fade toward dim
+            const ratio = t / d.len
+            r = Math.round(BRIGHT[0] * (1 - ratio) + DIM[0] * ratio)
+            g = Math.round(BRIGHT[1] * (1 - ratio) + DIM[1] * ratio)
+            b = Math.round(BRIGHT[2] * (1 - ratio) + DIM[2] * ratio)
+            a = Math.max(0, (1 - ratio) * 0.85)
           }
 
-          if (!ch || ch === ' ') continue
-          ctx.fillStyle = color
-          ctx.fillText(ch, c * cw, r * rh)
+          // Keyword overlay near head
+          if (d.keyword && t < d.kwTimer && t < d.keyword.length) {
+            ch = d.keyword[t]
+            r = GOLD[0]; g = GOLD[1]; b = GOLD[2]
+            a = Math.min(a + 0.2, 1)
+          }
+
+          ctx.fillStyle = `rgba(${r},${g},${b},${a.toFixed(2)})`
+          ctx.fillText(ch, x, py)
+        }
+
+        // Advance drop
+        d.y += d.speed
+        if (d.kwTimer > 0) d.kwTimer -= d.speed
+
+        // Reset when off screen
+        if (d.y - d.len > rows) {
+          drops[c] = initDrop(c)
+          drops[c].y = -Math.random() * rows * 0.5 // stagger re-entry
         }
       }
 
@@ -157,18 +137,12 @@ export default function AsciiHero() {
       rafRef.current = requestAnimationFrame(draw)
     }
 
-    // ── init ────────────────────────────────────────────────────────────────
     resize()
-    draw()
-
     window.addEventListener('resize', resize)
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('touchmove', onMove, { passive: true })
+    draw()
 
     return () => {
       window.removeEventListener('resize', resize)
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('touchmove', onMove)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [])
